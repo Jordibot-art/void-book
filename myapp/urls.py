@@ -18,6 +18,7 @@ urlpatterns = [
     # Admin Dashboard APIs
     path('api/admin/novels/create/', views.api_admin_add_novel, name='admin_add_novel'),
     path('api/admin/chapters/create/', views.api_admin_add_chapter, name='admin_add_chapter'),
+    path('api/admin/novels/<int:novel_id>/chapters/<int:chapter_number>/delete/', views.api_admin_delete_chapter, name='admin_delete_chapter'),
     path('api/admin/users/', views.api_admin_get_users, name='admin_get_users'),
     path('api/admin/users/<int:user_id>/update/', views.api_admin_update_user, name='admin_update_user'),
     path('api/admin/users/<int:user_id>/toggle-ban/', views.api_admin_toggle_ban, name='admin_toggle_ban'),
@@ -30,7 +31,8 @@ urlpatterns = [
     path('api/updates/', views.api_get_updates, name='api_get_updates'),
     path('api/new-releases/', views.api_get_new_releases, name='api_get_new_releases'),
     
-    # Admin Homepage Hero Management APIs
+    # Admin Homepage Management APIs
+    path('api/admin/featured/', views.api_admin_get_featured, name='admin_get_featured'),
     path('api/admin/hero-slots/', views.api_admin_get_hero_slots, name='admin_get_hero_slots'),
     path('api/admin/novels/<int:novel_id>/hero-slot/', views.api_admin_set_hero_slot, name='admin_set_hero_slot'),
     path('api/admin/novels/<int:novel_id>/toggle-featured/', views.api_admin_toggle_featured, name='admin_toggle_featured'),

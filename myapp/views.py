@@ -242,6 +242,34 @@ def api_admin_add_chapter(request):
 
 
 @staff_member_required(login_url='/')
+def api_admin_delete_chapter(request, novel_id, chapter_number):
+    """Delete a chapter for a specific novel"""
+    if request.method == 'DELETE':
+        try:
+            real_novel_id = novel_id - 10000
+            chapter = Chapter.objects.get(novel_id=real_novel_id, chapter_number=chapter_number)
+            novel = chapter.novel
+
+            actor = request.user.username if request.user.is_authenticated else 'Admin'
+            ActivityLog.log_activity(
+                action='chapter_deleted',
+                description=f'Deleted Chapter <strong>{chapter_number}</strong> from "<strong>{novel.title}</strong>"',
+                actor=actor,
+                novel_title=novel.title,
+                novel_id=novel.id,
+                chapter_number=chapter_number
+            )
+
+            chapter.delete()
+            return JsonResponse({'message': 'Chapter deleted successfully'})
+        except Chapter.DoesNotExist:
+            return JsonResponse({'error': 'Chapter not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+    return JsonResponse({'error': 'Invalid request'}, status=400)
+
+
+@staff_member_required(login_url='/')
 def api_admin_get_users(request):
     if request.method == 'GET':
         users = User.objects.all().values('id', 'username', 'email', 'date_joined', 'is_active')
@@ -593,6 +621,40 @@ def api_admin_delete_novel(request, novel_id):
             return JsonResponse({'error': 'Novel not found'}, status=404)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
+    return JsonResponse({'error': 'Invalid request'}, status=400)
+
+
+@staff_member_required(login_url='/')
+def api_admin_get_featured(request):
+    """Get current featured novels for custom admin management"""
+    if request.method == 'GET':
+        featured = Novel.objects.filter(is_featured=True)
+        all_novels = Novel.objects.all().order_by('-created_at')
+
+        featured_data = []
+        for novel in featured:
+            chapters = novel.chapters.all()
+            latest_chapter = 0
+            for ch in chapters:
+                if ch.chapter_number > latest_chapter:
+                    latest_chapter = ch.chapter_number
+
+            featured_data.append(_novel_to_dict(novel, latest_chapter))
+
+        all_data = []
+        for novel in all_novels:
+            chapters = novel.chapters.all()
+            latest_chapter = 0
+            for ch in chapters:
+                if ch.chapter_number > latest_chapter:
+                    latest_chapter = ch.chapter_number
+
+            all_data.append(_novel_to_dict(novel, latest_chapter))
+
+        return JsonResponse({
+            'featured': featured_data,
+            'all_novels': all_data
+        }, safe=False)
     return JsonResponse({'error': 'Invalid request'}, status=400)
 
 

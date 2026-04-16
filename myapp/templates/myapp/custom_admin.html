@@ -945,8 +945,12 @@
       <span class="nav-badge" id="novel-count-badge">—</span>
     </div>
     <div class="nav-item" onclick="showView('featured', this)">
-      <span class="nav-icon">★</span> Hero Slots
-      <span class="nav-badge" id="featured-count-badge">0/3</span>
+      <span class="nav-icon">★</span> Featured
+      <span class="nav-badge" id="featured-count-badge">0/2</span>
+    </div>
+    <div class="nav-item" onclick="showView('hero-slots', this)">
+      <span class="nav-icon">✦</span> Hero Slots
+      <span class="nav-badge" id="hero-slot-count-badge">0/3</span>
     </div>
     <div class="nav-item" onclick="showView('chapters', this)">
       <span class="nav-icon">▤</span> Chapters
@@ -1184,16 +1188,16 @@
     <div class="view" id="view-featured">
       <div class="page-header">
         <div>
-          <h1>HERO <span>SLOTS</span></h1>
-          <p>Choose which 3 novels appear in the homepage top cards.</p>
+          <h1>FEATURED <span>NOVELS</span></h1>
+          <p>Select up to 2 novels to feature in the homepage Featured section.</p>
         </div>
       </div>
       <div class="card" style="margin-bottom:1rem">
         <div class="card-header">
-          <span class="card-title">Current Hero Slots (<span id="featured-count">0</span>/3)</span>
+          <span class="card-title">Currently Featured (<span id="featured-count">0</span>/2)</span>
         </div>
         <div class="card-body" id="featured-current">
-          <div class="empty-state"><div class="empty-icon">★</div><p>No hero novels selected yet. Assign Slot 1, 2, and 3 below.</p></div>
+          <div class="empty-state"><div class="empty-icon">★</div><p>No novels currently featured. Select novels below to feature them on the homepage.</p></div>
         </div>
       </div>
       <div class="card">
@@ -1205,6 +1209,35 @@
           </div>
         </div>
         <div class="card-body" id="featured-all-list" style="max-height:500px;overflow-y:auto">
+          <div class="empty-state"><div class="empty-icon">📚</div><p>Loading novels...</p></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="view" id="view-hero-slots">
+      <div class="page-header">
+        <div>
+          <h1>HERO <span>SLOTS</span></h1>
+          <p>Choose which 3 novels appear in the homepage top cards.</p>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:1rem">
+        <div class="card-header">
+          <span class="card-title">Current Hero Slots (<span id="hero-slot-count">0</span>/3)</span>
+        </div>
+        <div class="card-body" id="hero-slot-current">
+          <div class="empty-state"><div class="empty-icon">✦</div><p>No hero novels selected yet. Assign Slot 1, 2, and 3 below.</p></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">All Novels</span>
+          <div class="filter-search" style="flex:1;max-width:250px;margin-left:1rem">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input type="text" placeholder="Search novels..." id="hero-slot-filter" oninput="renderHeroSlotManagement()">
+          </div>
+        </div>
+        <div class="card-body" id="hero-slot-all-list" style="max-height:500px;overflow-y:auto">
           <div class="empty-state"><div class="empty-icon">📚</div><p>Loading novels...</p></div>
         </div>
       </div>
@@ -1519,7 +1552,7 @@ function showView(id, navEl) {
 
   const titles = {
     dashboard: 'Dashboard', analytics: 'Analytics',
-    novels: 'Novels', featured: 'Hero Slots', chapters: 'Chapters', 'add-novel': 'Add Novel',
+    novels: 'Novels', featured: 'Featured', 'hero-slots': 'Hero Slots', chapters: 'Chapters', 'add-novel': 'Add Novel',
     users: 'Users', libraries: 'Libraries', settings: 'Settings'
   };
   document.getElementById('topbar-title').textContent = titles[id] || id;
@@ -1940,6 +1973,7 @@ function renderChaptersTable() {
         <td>
           <div class="action-row">
             <button class="btn btn-ghost btn-sm" onclick="previewChapter('${c.novel}',${c.chNum},'${encodeURIComponent(c.content.substring(0,500))}')">Preview</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteChapter(${c.novelId}, ${c.chNum}, '${c.novel.replace(/'/g, "\\'")}')">Del</button>
           </div>
         </td>
       </tr>
@@ -1947,6 +1981,28 @@ function renderChaptersTable() {
   }).join('');
 
   renderPagination('ch', filteredChapters.length, chPage, p=>{chPage=p;renderChaptersTable();});
+}
+
+async function deleteChapter(novelId, chapterNumber, novelTitle) {
+  if (!confirm(`Delete Chapter ${chapterNumber} from "${novelTitle}"? This cannot be undone.`)) return;
+
+  try {
+    const r = await fetch(`${apiBase}/admin/novels/${novelId}/chapters/${chapterNumber}/delete/`, {
+      method: 'DELETE',
+      headers: { 'X-CSRFToken': getCookie('csrftoken') }
+    });
+
+    if (r.ok) {
+      toast(`Chapter ${chapterNumber} deleted`, 'success');
+      await fetchAll();
+      filterChapters(document.getElementById('ch-filter').value);
+    } else {
+      const errData = await r.json();
+      toast(errData.error || 'Failed to delete chapter', 'error');
+    }
+  } catch(e) {
+    toast('API error: Could not connect to delete route', 'error');
+  }
 }
 
 // ═══════════════════════════════════════
@@ -2286,13 +2342,14 @@ async function toggleBanUser(userId, username, currentStatus) {
 }
 
 // ═══════════════════════════════════════
-// HERO SLOT MANAGEMENT
+// FEATURED MANAGEMENT
 // ═══════════════════════════════════════
-let featuredData = { hero_slots: [], all_novels: [] };
+let featuredData = { featured: [], all_novels: [] };
+let heroSlotData = { hero_slots: [], all_novels: [] };
 
 async function fetchFeaturedData() {
   try {
-    const r = await fetch(`${apiBase}/admin/hero-slots/?t=${new Date().getTime()}`, { cache: 'no-store' });
+    const r = await fetch(`${apiBase}/admin/featured/?t=${new Date().getTime()}`, { cache: 'no-store' });
     if (r.ok) {
       featuredData = await r.json();
       renderFeaturedManagement();
@@ -2310,19 +2367,115 @@ async function fetchFeaturedData() {
 
 function renderFeaturedManagement() {
   const filter = (document.getElementById('featured-filter') || {}).value || '';
-  const featured = featuredData.hero_slots || [];
+  const featured = featuredData.featured || [];
   const allNovels = (featuredData.all_novels || []).filter(n => 
     !filter || n.title.toLowerCase().includes(filter.toLowerCase())
   );
   
   // Update count badge
-  document.getElementById('featured-count-badge').textContent = `${featured.length}/3`;
+  document.getElementById('featured-count-badge').textContent = `${featured.length}/2`;
   document.getElementById('featured-count').textContent = featured.length;
   
-  // Render current hero slots
+  // Render currently featured
   const currentEl = document.getElementById('featured-current');
   if (featured.length === 0) {
-    currentEl.innerHTML = '<div class="empty-state"><div class="empty-icon">★</div><p>No hero novels selected yet. Assign Slot 1, 2, and 3 below.</p></div>';
+    currentEl.innerHTML = '<div class="empty-state"><div class="empty-icon">★</div><p>No novels currently featured. Select novels below to feature them on the homepage.</p></div>';
+  } else {
+    currentEl.innerHTML = featured.map(n => `
+      <div class="top-item">
+        <div class="top-cover" style="${n.color?'background:'+n.color:''}">
+          ${n.coverUrl ? `<img src="${n.coverUrl}" style="width:100%;height:100%;object-fit:cover">` : n.kanji}
+        </div>
+        <div class="top-info">
+          <div class="top-title">${n.title}</div>
+          <div class="top-meta">${n.genre} · ★${n.rating} · Ch.${n.ch}</div>
+        </div>
+        <button class="btn btn-danger btn-sm" onclick="toggleFeatured(${n.id}, false)">Remove</button>
+      </div>
+    `).join('');
+  }
+  
+  // Render all novels list
+  const allEl = document.getElementById('featured-all-list');
+  if (allNovels.length === 0) {
+    allEl.innerHTML = '<div class="empty-state"><div class="empty-icon">📚</div><p>No novels found.</p></div>';
+  } else {
+    allEl.innerHTML = allNovels.map(n => {
+      const isFeatured = featured.some(f => f.id === n.id);
+      return `
+        <div class="top-item" style="opacity:${isFeatured ? '0.5' : '1'}">
+          <div class="top-cover" style="${n.color?'background:'+n.color:''}">
+            ${n.coverUrl ? `<img src="${n.coverUrl}" style="width:100%;height:100%;object-fit:cover">` : n.kanji}
+          </div>
+          <div class="top-info">
+            <div class="top-title">${n.title} ${isFeatured ? '<span class="badge badge-new" style="margin-left:.4rem">Featured</span>' : ''}</div>
+            <div class="top-meta">${n.genre} · ★${n.rating} · Ch.${n.ch}</div>
+          </div>
+          <button class="btn ${isFeatured ? 'btn-ghost' : 'btn-primary'} btn-sm" onclick="toggleFeatured(${n.id}, ${!isFeatured})">
+            ${isFeatured ? 'Remove' : 'Feature'}
+          </button>
+        </div>
+      `;
+    }).join('');
+  }
+}
+
+async function toggleFeatured(novelId, isFeatured) {
+  try {
+    const actualId = novelId - 10000;
+
+    const r = await fetch(`${apiBase}/admin/novels/${actualId}/toggle-featured/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      body: JSON.stringify({ is_featured: isFeatured })
+    });
+    
+    if (r.ok) {
+      toast(isFeatured ? 'Novel featured!' : 'Novel unfeatured', 'success');
+      await fetchFeaturedData();
+    } else {
+      const errData = await r.json();
+      toast(errData.error || 'Failed to update featured status', 'error');
+    }
+  } catch(e) {
+    toast('API error: Could not connect to server', 'error');
+  }
+}
+
+// HERO SLOT MANAGEMENT
+// ═══════════════════════════════════════
+async function fetchHeroSlotData() {
+  try {
+    const r = await fetch(`${apiBase}/admin/hero-slots/?t=${new Date().getTime()}`, { cache: 'no-store' });
+    if (r.ok) {
+      heroSlotData = await r.json();
+      renderHeroSlotManagement();
+    } else {
+      document.getElementById('hero-slot-current').innerHTML = '<div class="empty-state"><div class="empty-icon">❌</div><p>Failed to load hero slot data</p></div>';
+      document.getElementById('hero-slot-all-list').innerHTML = '<div class="empty-state"><div class="empty-icon">❌</div><p>Failed to load novels</p></div>';
+    }
+  } catch(e) {
+    document.getElementById('hero-slot-current').innerHTML = '<div class="empty-state"><div class="empty-icon">❌</div><p>Network error</p></div>';
+    document.getElementById('hero-slot-all-list').innerHTML = '<div class="empty-state"><div class="empty-icon">❌</div><p>Network error</p></div>';
+  }
+}
+
+function renderHeroSlotManagement() {
+  const filter = (document.getElementById('hero-slot-filter') || {}).value || '';
+  const featured = heroSlotData.hero_slots || [];
+  const allNovels = (heroSlotData.all_novels || []).filter(n => 
+    !filter || n.title.toLowerCase().includes(filter.toLowerCase())
+  );
+
+  document.getElementById('hero-slot-count-badge').textContent = `${featured.length}/3`;
+  document.getElementById('hero-slot-count').textContent = featured.length;
+
+  const currentEl = document.getElementById('hero-slot-current');
+  if (featured.length === 0) {
+    currentEl.innerHTML = '<div class="empty-state"><div class="empty-icon">✦</div><p>No hero novels selected yet. Assign Slot 1, 2, and 3 below.</p></div>';
   } else {
     const slotCards = [1, 2, 3].map(slot => {
       const n = featured.find(item => item.hero_slot === slot);
@@ -2353,9 +2506,8 @@ function renderFeaturedManagement() {
     });
     currentEl.innerHTML = slotCards.join('');
   }
-  
-  // Render all novels list
-  const allEl = document.getElementById('featured-all-list');
+
+  const allEl = document.getElementById('hero-slot-all-list');
   if (allNovels.length === 0) {
     allEl.innerHTML = '<div class="empty-state"><div class="empty-icon">📚</div><p>No novels found.</p></div>';
   } else {
@@ -2385,7 +2537,6 @@ function renderFeaturedManagement() {
 async function setHeroSlot(novelId, heroSlot) {
   try {
     const actualId = novelId - 10000;
-
     const r = await fetch(`${apiBase}/admin/novels/${actualId}/hero-slot/`, {
       method: 'POST',
       headers: {
@@ -2397,7 +2548,7 @@ async function setHeroSlot(novelId, heroSlot) {
     
     if (r.ok) {
       toast(heroSlot ? `Assigned to Hero Slot ${heroSlot}` : 'Hero slot cleared', 'success');
-      await fetchFeaturedData();
+      await fetchHeroSlotData();
       await fetchNovels();
       filterNovels(document.getElementById('novel-filter').value);
     } else {
@@ -2423,6 +2574,9 @@ showView = function(id, navEl) {
   originalShowView(id, navEl);
   if (id === 'featured') {
     fetchFeaturedData();
+  }
+  if (id === 'hero-slots') {
+    fetchHeroSlotData();
   }
 };
 </script>
