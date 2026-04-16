@@ -1325,10 +1325,6 @@
                   <option value="classic">🏆 Classic</option>
                 </select>
               </div>
-              <div class="form-group">
-                <label class="form-label">Kanji / Symbol</label>
-                <input class="form-input" id="new-kanji" type="text" placeholder="小説" maxlength="10">
-              </div>
               <div class="form-group full">
                 <label class="form-label">Card Color (CSS Gradient)</label>
                 <input class="form-input" id="new-color" type="text" placeholder="linear-gradient(135deg,#1a0533,#3d0a6b,#ff3c5f)" value="linear-gradient(135deg,#1a0533,#3d0a6b,#ff3c5f)">
@@ -1351,13 +1347,14 @@
             <div class="form-grid">
               <div class="form-group full">
                 <label class="form-label">Novel *</label>
-                <select class="form-select" id="ch-novel-sel">
+                <select class="form-select" id="ch-novel-sel" onchange="updateChapterSuggestion()">
                   <option value="">Select Novel</option>
                 </select>
               </div>
               <div class="form-group">
                 <label class="form-label">Chapter Number *</label>
                 <input class="form-input" id="ch-num" type="number" placeholder="1" min="1">
+                <div id="ch-next-hint" style="margin-top:.35rem;font-size:.68rem;color:var(--muted);">Select a novel to see latest chapter.</div>
               </div>
             </div>
             <div class="form-group" style="margin-top:.8rem">
@@ -2073,20 +2070,70 @@ function viewLibraryDetail(username) {
   // Find library by user string or user object username
   const l = libraries.find(x=> x.user === username || (typeof x.user === 'object' && x.user.username === username));
   if (!l) return;
+  const resolveTitleFromId = (id) => {
+    const match = novels.find(n => String(n.id) === String(id));
+    return match ? match.title : `Novel #${id}`;
+  };
+  const parseChapter = (entry) => {
+    if (entry && typeof entry === 'object' && entry.chapter !== undefined) return entry.chapter;
+    if (typeof entry === 'number') return entry;
+    return '—';
+  };
+
+  const bookmarks = Array.isArray(l.bookmarks) ? l.bookmarks : [];
+  const history = Array.isArray(l.read_history) ? l.read_history : [];
+  const progressEntries = Object.entries(l.progress || {});
+
+  const bookmarkHtml = bookmarks.length
+    ? bookmarks.map((b, i) => `
+        <div class="top-item">
+          <div class="top-rank">${i + 1}</div>
+          <div class="top-info">
+            <div class="top-title">${b.title || resolveTitleFromId(b.id)}</div>
+            <div class="top-meta">${b.genre || 'Genre —'} · ★${b.rating || '—'}</div>
+          </div>
+        </div>
+      `).join('')
+    : '<div style="color:var(--muted);font-size:.75rem">No bookmarks.</div>';
+
+  const historyHtml = history.length
+    ? history.map((h, i) => `
+        <div class="top-item">
+          <div class="top-rank">${i + 1}</div>
+          <div class="top-info">
+            <div class="top-title">${h.title || resolveTitleFromId(h.id)}</div>
+            <div class="top-meta">${h.ch || 'Chapter —'} · ${h.time || 'Recently'}</div>
+          </div>
+        </div>
+      `).join('')
+    : '<div style="color:var(--muted);font-size:.75rem">No reading history.</div>';
+
+  const progressHtml = progressEntries.length
+    ? progressEntries.map(([novelId, data], i) => `
+        <div class="top-item">
+          <div class="top-rank">${i + 1}</div>
+          <div class="top-info">
+            <div class="top-title">${resolveTitleFromId(novelId)}</div>
+            <div class="top-meta">Current chapter: ${parseChapter(data)}</div>
+          </div>
+        </div>
+      `).join('')
+    : '<div style="color:var(--muted);font-size:.75rem">No saved progress.</div>';
+
   document.getElementById('nm-title').textContent = `${username}'s Library`;
   document.getElementById('nm-body').innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
       <div>
-        <div class="form-label" style="margin-bottom:.5rem">Bookmarks (${Array.isArray(l.bookmarks)?l.bookmarks.length:0})</div>
-        <div style="font-family:'Space Mono';font-size:.7rem;color:var(--muted);word-break:break-all">${JSON.stringify(l.bookmarks||[])}</div>
+        <div class="form-label" style="margin-bottom:.5rem">Bookmarks (${bookmarks.length})</div>
+        <div style="max-height:220px;overflow:auto;padding-right:.25rem">${bookmarkHtml}</div>
       </div>
       <div>
-        <div class="form-label" style="margin-bottom:.5rem">Read History (${Array.isArray(l.read_history)?l.read_history.length:0})</div>
-        <div style="font-family:'Space Mono';font-size:.7rem;color:var(--muted);word-break:break-all">${JSON.stringify(l.read_history||[])}</div>
+        <div class="form-label" style="margin-bottom:.5rem">Read History (${history.length})</div>
+        <div style="max-height:220px;overflow:auto;padding-right:.25rem">${historyHtml}</div>
       </div>
       <div style="grid-column:span 2">
         <div class="form-label" style="margin-bottom:.5rem">Progress</div>
-        <div style="font-family:'Space Mono';font-size:.7rem;color:var(--muted);word-break:break-all">${JSON.stringify(l.progress||{})}</div>
+        <div style="max-height:220px;overflow:auto;padding-right:.25rem">${progressHtml}</div>
       </div>
     </div>
   `;
@@ -2098,11 +2145,30 @@ function viewLibraryDetail(username) {
 // ═══════════════════════════════════════
 function populateNovelSelects() {
   const sel = document.getElementById('ch-novel-sel');
-  sel.innerHTML = '<option value="">Select Novel</option>' + novels.map(n=>`<option value="${n.id}">${n.title}</option>`).join('');
+  sel.innerHTML = '<option value="">Select Novel</option>' + novels.map(n=>`<option value="${n.id}">${n.title} (latest: ${n.chapterCount || 0})</option>`).join('');
+  updateChapterSuggestion();
+}
+
+function updateChapterSuggestion() {
+  const novelId = document.getElementById('ch-novel-sel').value;
+  const hintEl = document.getElementById('ch-next-hint');
+  const chInput = document.getElementById('ch-num');
+
+  if (!novelId) {
+    hintEl.textContent = 'Select a novel to see latest chapter.';
+    chInput.placeholder = '1';
+    return;
+  }
+
+  const selectedNovel = novels.find(n => String(n.id) === String(novelId));
+  const latest = selectedNovel?.chapterCount || 0;
+  const nextChapter = latest + 1;
+  hintEl.textContent = `Latest chapter: ${latest}. Suggested next chapter: ${nextChapter}.`;
+  chInput.value = nextChapter;
 }
 
 function clearForm() {
-  ['new-title','new-genre','new-rating','new-badge','new-kanji','new-cover'].forEach(id=>{
+  ['new-title','new-genre','new-rating','new-badge','new-cover'].forEach(id=>{
     const el = document.getElementById(id);
     if(el) el.value = el.tagName==='SELECT'?'':el.defaultValue||'';
   });
@@ -2119,7 +2185,6 @@ async function submitNovel() {
   formData.append('genre', genre);
   formData.append('rating', document.getElementById('new-rating').value || '0.0');
   formData.append('badge', document.getElementById('new-badge').value || '');
-  formData.append('kanji', document.getElementById('new-kanji').value || '');
   formData.append('color', document.getElementById('new-color').value || 'linear-gradient(135deg,#1a0533,#3d0a6b,#ff3c5f)');
 
   // Grab the actual image file from the computer!
