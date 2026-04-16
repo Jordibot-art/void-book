@@ -945,8 +945,8 @@
       <span class="nav-badge" id="novel-count-badge">—</span>
     </div>
     <div class="nav-item" onclick="showView('featured', this)">
-      <span class="nav-icon">★</span> Featured
-      <span class="nav-badge" id="featured-count-badge">0/2</span>
+      <span class="nav-icon">★</span> Hero Slots
+      <span class="nav-badge" id="featured-count-badge">0/3</span>
     </div>
     <div class="nav-item" onclick="showView('chapters', this)">
       <span class="nav-icon">▤</span> Chapters
@@ -1162,6 +1162,7 @@
                 <th>Cover</th>
                 <th>Title</th>
                 <th>Genre</th>
+                <th>Hero Slot</th>
                 <th>Chapters</th>
                 <th>Rating</th>
                 <th>Badge</th>
@@ -1169,7 +1170,7 @@
               </tr>
             </thead>
             <tbody id="novel-table-body">
-              <tr><td colspan="7"><div class="empty-state"><div class="empty-icon">📚</div><p>Loading novels from database...</p></div></td></tr>
+              <tr><td colspan="8"><div class="empty-state"><div class="empty-icon">📚</div><p>Loading novels from database...</p></div></td></tr>
             </tbody>
           </table>
         </div>
@@ -1183,16 +1184,16 @@
     <div class="view" id="view-featured">
       <div class="page-header">
         <div>
-          <h1>FEATURED <span>NOVELS</span></h1>
-          <p>Select up to 2 novels to feature on the homepage.</p>
+          <h1>HERO <span>SLOTS</span></h1>
+          <p>Choose which 3 novels appear in the homepage top cards.</p>
         </div>
       </div>
       <div class="card" style="margin-bottom:1rem">
         <div class="card-header">
-          <span class="card-title">Currently Featured (<span id="featured-count">0</span>/2)</span>
+          <span class="card-title">Current Hero Slots (<span id="featured-count">0</span>/3)</span>
         </div>
         <div class="card-body" id="featured-current">
-          <div class="empty-state"><div class="empty-icon">★</div><p>No novels currently featured. Select novels below to feature them on the homepage.</p></div>
+          <div class="empty-state"><div class="empty-icon">★</div><p>No hero novels selected yet. Assign Slot 1, 2, and 3 below.</p></div>
         </div>
       </div>
       <div class="card">
@@ -1518,7 +1519,7 @@ function showView(id, navEl) {
 
   const titles = {
     dashboard: 'Dashboard', analytics: 'Analytics',
-    novels: 'Novels', chapters: 'Chapters', 'add-novel': 'Add Novel',
+    novels: 'Novels', featured: 'Hero Slots', chapters: 'Chapters', 'add-novel': 'Add Novel',
     users: 'Users', libraries: 'Libraries', settings: 'Settings'
   };
   document.getElementById('topbar-title').textContent = titles[id] || id;
@@ -1541,7 +1542,7 @@ async function fetchAll() {
   } catch(e) {
     console.error('Novels error:', e);
     document.getElementById('dash-top-novels').innerHTML = '<div class="empty-state"><div class="empty-icon">❌</div><p>API Connection Failed</p></div>';
-    document.getElementById('novel-table-body').innerHTML = '<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">❌</div><p>API Connection Failed</p></div></td></tr>';
+    document.getElementById('novel-table-body').innerHTML = '<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">❌</div><p>API Connection Failed</p></div></td></tr>';
   }
 
   // 2. Fetch Users
@@ -1782,7 +1783,7 @@ function renderNovelsTable() {
 
   const tbody = document.getElementById('novel-table-body');
   if (!page.length) {
-    tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">📚</div><p>No novels found</p></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">📚</div><p>No novels found</p></div></td></tr>`;
     return;
   }
 
@@ -1795,6 +1796,14 @@ function renderNovelsTable() {
       </td>
       <td style="font-weight:500;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${n.title}</td>
       <td><span class="genre-tag">${n.genre||'—'}</span></td>
+      <td>
+        <select class="filter-select" style="min-width:96px" onchange="setHeroSlot(${n.id}, this.value ? Number(this.value) : null)">
+          <option value="">None</option>
+          <option value="1" ${n.hero_slot === 1 ? 'selected' : ''}>Slot 1</option>
+          <option value="2" ${n.hero_slot === 2 ? 'selected' : ''}>Slot 2</option>
+          <option value="3" ${n.hero_slot === 3 ? 'selected' : ''}>Slot 3</option>
+        </select>
+      </td>
       <td>
         <span style="font-family:'Space Mono',monospace;font-size:.72rem">${(n.chapterCount||0).toLocaleString()}</span>
       </td>
@@ -2277,13 +2286,13 @@ async function toggleBanUser(userId, username, currentStatus) {
 }
 
 // ═══════════════════════════════════════
-// FEATURED MANAGEMENT
+// HERO SLOT MANAGEMENT
 // ═══════════════════════════════════════
-let featuredData = { featured: [], all_novels: [] };
+let featuredData = { hero_slots: [], all_novels: [] };
 
 async function fetchFeaturedData() {
   try {
-    const r = await fetch(`${apiBase}/admin/featured/?t=${new Date().getTime()}`, { cache: 'no-store' });
+    const r = await fetch(`${apiBase}/admin/hero-slots/?t=${new Date().getTime()}`, { cache: 'no-store' });
     if (r.ok) {
       featuredData = await r.json();
       renderFeaturedManagement();
@@ -2301,32 +2310,48 @@ async function fetchFeaturedData() {
 
 function renderFeaturedManagement() {
   const filter = (document.getElementById('featured-filter') || {}).value || '';
-  const featured = featuredData.featured || [];
+  const featured = featuredData.hero_slots || [];
   const allNovels = (featuredData.all_novels || []).filter(n => 
     !filter || n.title.toLowerCase().includes(filter.toLowerCase())
   );
   
   // Update count badge
-  document.getElementById('featured-count-badge').textContent = `${featured.length}/2`;
+  document.getElementById('featured-count-badge').textContent = `${featured.length}/3`;
   document.getElementById('featured-count').textContent = featured.length;
   
-  // Render currently featured
+  // Render current hero slots
   const currentEl = document.getElementById('featured-current');
   if (featured.length === 0) {
-    currentEl.innerHTML = '<div class="empty-state"><div class="empty-icon">★</div><p>No novels currently featured. Select novels below to feature them on the homepage.</p></div>';
+    currentEl.innerHTML = '<div class="empty-state"><div class="empty-icon">★</div><p>No hero novels selected yet. Assign Slot 1, 2, and 3 below.</p></div>';
   } else {
-    currentEl.innerHTML = featured.map(n => `
+    const slotCards = [1, 2, 3].map(slot => {
+      const n = featured.find(item => item.hero_slot === slot);
+      if (!n) {
+        return `
+          <div class="top-item">
+            <div class="top-rank">#${slot}</div>
+            <div class="top-info">
+              <div class="top-title">Hero Slot ${slot}</div>
+              <div class="top-meta">No novel assigned yet</div>
+            </div>
+          </div>
+        `;
+      }
+      return `
       <div class="top-item">
+        <div class="top-rank">#${n.hero_slot}</div>
         <div class="top-cover" style="${n.color?'background:'+n.color:''}">
           ${n.coverUrl ? `<img src="${n.coverUrl}" style="width:100%;height:100%;object-fit:cover">` : n.kanji}
         </div>
         <div class="top-info">
           <div class="top-title">${n.title}</div>
-          <div class="top-meta">${n.genre} · ★${n.rating} · Ch.${n.ch}</div>
+          <div class="top-meta">Slot ${n.hero_slot} · ${n.genre} · ★${n.rating} · Ch.${n.ch}</div>
         </div>
-        <button class="btn btn-danger btn-sm" onclick="toggleFeatured(${n.id}, false)">Remove</button>
+        <button class="btn btn-danger btn-sm" onclick="setHeroSlot(${n.id}, null)">Clear</button>
       </div>
-    `).join('');
+    `;
+    });
+    currentEl.innerHTML = slotCards.join('');
   }
   
   // Render all novels list
@@ -2335,45 +2360,49 @@ function renderFeaturedManagement() {
     allEl.innerHTML = '<div class="empty-state"><div class="empty-icon">📚</div><p>No novels found.</p></div>';
   } else {
     allEl.innerHTML = allNovels.map(n => {
-      const isFeatured = featured.some(f => f.id === n.id);
+      const assignedSlot = (featured.find(f => f.id === n.id) || {}).hero_slot;
       return `
-        <div class="top-item" style="opacity:${isFeatured ? '0.5' : '1'}">
+        <div class="top-item">
           <div class="top-cover" style="${n.color?'background:'+n.color:''}">
             ${n.coverUrl ? `<img src="${n.coverUrl}" style="width:100%;height:100%;object-fit:cover">` : n.kanji}
           </div>
           <div class="top-info">
-            <div class="top-title">${n.title} ${isFeatured ? '<span class="badge badge-new" style="margin-left:.4rem">Featured</span>' : ''}</div>
+            <div class="top-title">${n.title} ${assignedSlot ? `<span class="badge badge-new" style="margin-left:.4rem">Slot ${assignedSlot}</span>` : ''}</div>
             <div class="top-meta">${n.genre} · ★${n.rating} · Ch.${n.ch}</div>
           </div>
-          <button class="btn ${isFeatured ? 'btn-ghost' : 'btn-primary'} btn-sm" onclick="toggleFeatured(${n.id}, ${!isFeatured})">
-            ${isFeatured ? 'Remove' : 'Feature'}
-          </button>
+          <div style="display:flex;gap:.35rem;flex-wrap:wrap">
+            <button class="btn ${assignedSlot === 1 ? 'btn-primary' : 'btn-ghost'} btn-sm" onclick="setHeroSlot(${n.id}, 1)">Slot 1</button>
+            <button class="btn ${assignedSlot === 2 ? 'btn-primary' : 'btn-ghost'} btn-sm" onclick="setHeroSlot(${n.id}, 2)">Slot 2</button>
+            <button class="btn ${assignedSlot === 3 ? 'btn-primary' : 'btn-ghost'} btn-sm" onclick="setHeroSlot(${n.id}, 3)">Slot 3</button>
+            ${assignedSlot ? `<button class="btn btn-danger btn-sm" onclick="setHeroSlot(${n.id}, null)">Clear</button>` : ''}
+          </div>
         </div>
       `;
     }).join('');
   }
 }
 
-async function toggleFeatured(novelId, isFeatured) {
+async function setHeroSlot(novelId, heroSlot) {
   try {
-    // Remove the +10000 offset to get the actual database ID
     const actualId = novelId - 10000;
-    
-    const r = await fetch(`${apiBase}/admin/novels/${actualId}/toggle-featured/`, {
+
+    const r = await fetch(`${apiBase}/admin/novels/${actualId}/hero-slot/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'X-CSRFToken': getCookie('csrftoken')
       },
-      body: JSON.stringify({ is_featured: isFeatured })
+      body: JSON.stringify({ hero_slot: heroSlot })
     });
     
     if (r.ok) {
-      toast(isFeatured ? 'Novel featured!' : 'Novel unfeatured', 'success');
+      toast(heroSlot ? `Assigned to Hero Slot ${heroSlot}` : 'Hero slot cleared', 'success');
       await fetchFeaturedData();
+      await fetchNovels();
+      filterNovels(document.getElementById('novel-filter').value);
     } else {
       const errData = await r.json();
-      toast(errData.error || 'Failed to update featured status', 'error');
+      toast(errData.error || 'Failed to update hero slot', 'error');
     }
   } catch(e) {
     toast('API error: Could not connect to server', 'error');

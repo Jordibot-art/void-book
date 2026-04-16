@@ -1,5 +1,6 @@
 import json
 from datetime import timedelta
+from django.db.models import Max
 from django.utils import timezone
 from django.shortcuts import render
 from django.http import JsonResponse
@@ -12,7 +13,12 @@ from django.contrib.admin.views.decorators import staff_member_required
 # 1. MAIN PAGE RENDER
 @ensure_csrf_cookie
 def home(request):
-    return render(request, 'myapp/index.html')
+    hero_novels = (
+        Novel.objects.filter(hero_slot__isnull=False)
+        .annotate(latest_chapter=Max('chapters__chapter_number'))
+        .order_by('hero_slot')[:3]
+    )
+    return render(request, 'myapp/index.html', {'hero_novels': hero_novels})
 
 # 1.5 CUSTOM ADMIN DASHBOARD
 def custom_admin(request):
@@ -142,7 +148,8 @@ def api_get_novels(request):
             "color": novel.color or "linear-gradient(135deg,#1a0533,#3d0a6b,#ff3c5f)",
             "kanji": novel.kanji or "本",
             "coverUrl": cover_url,
-            "chapters": chapter_dict
+            "chapters": chapter_dict,
+            "hero_slot": novel.hero_slot,
         }
         mangas_data.append(manga)
 
@@ -378,6 +385,7 @@ def _novel_to_dict(novel, latest_chapter=0, latest_chapter_time=None):
         "coverUrl": cover_url,
         "position": novel.position or "center",
         "is_featured": novel.is_featured,
+        "hero_slot": novel.hero_slot,
     }
 
 
@@ -589,21 +597,21 @@ def api_admin_delete_novel(request, novel_id):
 
 
 @staff_member_required(login_url='/')
-def api_admin_get_featured(request):
-    """Get current featured novels for admin management"""
+def api_admin_get_hero_slots(request):
+    """Get current homepage hero slot selections for custom admin management"""
     if request.method == 'GET':
-        featured = Novel.objects.filter(is_featured=True)
+        hero_novels = Novel.objects.filter(hero_slot__isnull=False).order_by('hero_slot')
         all_novels = Novel.objects.all().order_by('-created_at')
         
-        featured_data = []
-        for novel in featured:
+        hero_slot_data = []
+        for novel in hero_novels:
             chapters = novel.chapters.all()
             latest_chapter = 0
             for ch in chapters:
                 if ch.chapter_number > latest_chapter:
                     latest_chapter = ch.chapter_number
             
-            featured_data.append(_novel_to_dict(novel, latest_chapter))
+            hero_slot_data.append(_novel_to_dict(novel, latest_chapter))
         
         all_data = []
         for novel in all_novels:
@@ -616,9 +624,69 @@ def api_admin_get_featured(request):
             all_data.append(_novel_to_dict(novel, latest_chapter))
         
         return JsonResponse({
-            'featured': featured_data,
+            'hero_slots': hero_slot_data,
             'all_novels': all_data
         }, safe=False)
+    return JsonResponse({'error': 'Invalid request'}, status=400)
+
+
+@staff_member_required(login_url='/')
+def api_admin_set_hero_slot(request, novel_id):
+    """Assign or clear a homepage hero slot for a novel"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            hero_slot = data.get('hero_slot')
+            novel = Novel.objects.get(id=novel_id)
+
+            if hero_slot in ('', None):
+                previous_slot = novel.hero_slot
+                novel.hero_slot = None
+                novel.save(update_fields=['hero_slot'])
+
+                actor = request.user.username if request.user.is_authenticated else 'Admin'
+                ActivityLog.log_activity(
+                    action='novel_updated',
+                    description=f'Cleared homepage hero slot for "<strong>{novel.title}</strong>"'
+                    + (f' (was Slot {previous_slot})' if previous_slot else ''),
+                    actor=actor,
+                    novel_title=novel.title,
+                    novel_id=novel.id,
+                )
+                return JsonResponse({
+                    'message': 'Hero slot cleared successfully',
+                    'id': novel.id,
+                    'hero_slot': None,
+                })
+
+            hero_slot = int(hero_slot)
+            if hero_slot not in (1, 2, 3):
+                return JsonResponse({'error': 'Hero slot must be 1, 2, or 3'}, status=400)
+
+            Novel.objects.filter(hero_slot=hero_slot).exclude(id=novel.id).update(hero_slot=None)
+            novel.hero_slot = hero_slot
+            novel.save(update_fields=['hero_slot'])
+
+            actor = request.user.username if request.user.is_authenticated else 'Admin'
+            ActivityLog.log_activity(
+                action='novel_updated',
+                description=f'Assigned "<strong>{novel.title}</strong>" to homepage Hero Slot <strong>{hero_slot}</strong>',
+                actor=actor,
+                novel_title=novel.title,
+                novel_id=novel.id,
+            )
+
+            return JsonResponse({
+                'message': 'Hero slot updated successfully',
+                'id': novel.id,
+                'hero_slot': novel.hero_slot,
+            })
+        except Novel.DoesNotExist:
+            return JsonResponse({'error': 'Novel not found'}, status=404)
+        except (TypeError, ValueError):
+            return JsonResponse({'error': 'Invalid hero slot value'}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
     return JsonResponse({'error': 'Invalid request'}, status=400)
 
 

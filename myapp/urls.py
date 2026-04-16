@@ -30,8 +30,9 @@ urlpatterns = [
     path('api/updates/', views.api_get_updates, name='api_get_updates'),
     path('api/new-releases/', views.api_get_new_releases, name='api_get_new_releases'),
     
-    # Admin Featured Management APIs
-    path('api/admin/featured/', views.api_admin_get_featured, name='admin_get_featured'),
+    # Admin Homepage Hero Management APIs
+    path('api/admin/hero-slots/', views.api_admin_get_hero_slots, name='admin_get_hero_slots'),
+    path('api/admin/novels/<int:novel_id>/hero-slot/', views.api_admin_set_hero_slot, name='admin_set_hero_slot'),
     path('api/admin/novels/<int:novel_id>/toggle-featured/', views.api_admin_toggle_featured, name='admin_toggle_featured'),
     
     # Admin Delete Novel API

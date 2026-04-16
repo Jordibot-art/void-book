@@ -143,24 +143,33 @@
     </div>
   </div>
   <div class="hero-cards">
-    <div class="hero-card" onclick="openReaderById(0)">
-      <div class="hero-card-img" style="padding: 0; overflow: hidden;">
-        <img src="{% static 'myapp/images/lookism.jpg' %}" style="width: 100%; height: 100%; object-fit: cover;" alt="Cover">
+    {% for novel in hero_novels %}
+    <div class="hero-card" onclick="openReaderById({{ novel.id|add:10000 }})">
+      <div class="hero-card-img{% if novel.hero_slot == 2 %} c2{% elif novel.hero_slot == 3 %} c3{% endif %}" style="padding: 0; overflow: hidden;">
+        {% if novel.cover_image %}
+        <img src="{{ novel.cover_image.url }}" style="width: 100%; height: 100%; object-fit: cover; object-position: {{ novel.position|default:'center' }};" alt="{{ novel.title }}">
+        {% else %}
+        <div style="width: 100%; height: 100%; background: {{ novel.color }}; display:flex; align-items:center; justify-content:center; font-family:'Bebas Neue'; font-size:2.6rem; color:#fff;">{{ novel.kanji }}</div>
+        {% endif %}
       </div>
-      <div class="hero-card-body"><div class="hero-card-title">Lookism</div><div class="hero-card-meta"><span>Ch.482</span><span class="rating">★9.8</span></div></div>
-    </div>
-    <div class="hero-card" onclick="openReaderById(1)">
-     <div class="hero-card-img c2" style="padding: 0; overflow: hidden;">
-      <img src="{% static 'myapp/images/estate.jpg' %}" style="width: 100%; height: 100%; object-fit: cover; object-position: 20% 50%;" alt="Cover">
-    </div>
-      <div class="hero-card-body"><div class="hero-card-title">Estate Designer</div><div class="hero-card-meta"><span>Ch.211</span><span class="rating">★9.5</span></div></div>
-    </div>
-    <div class="hero-card" onclick="openReaderById(9)">
-      <div class="hero-card-img c3" style="padding: 0; overflow: hidden;">
-        <img src="{% static 'myapp/images/solo.jpg' %}" style="width: 100%; height: 100%; object-fit: cover;" alt="Cover">
+      <div class="hero-card-body">
+        <div class="hero-card-title">{{ novel.title }}</div>
+        <div class="hero-card-meta">
+          <span>Ch.{{ novel.latest_chapter|default:0 }}</span>
+          <span class="rating">★{{ novel.rating }}</span>
+        </div>
       </div>
-      <div class="hero-card-body"><div class="hero-card-title">Solo Leveling</div><div class="hero-card-meta"><span>Ch.410</span><span class="rating">★9.3</span></div></div>
     </div>
+    {% empty %}
+    <div class="hero-card">
+      <div class="hero-card-body">
+        <div class="hero-card-title">No hero novels selected</div>
+        <div class="hero-card-meta">
+          <span>Assign Hero Slot 1-3 in admin</span>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
   </div>
 </div>
 

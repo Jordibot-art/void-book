@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Q
 from django.contrib.auth.models import User
 from django.utils import timezone
 
@@ -17,6 +18,12 @@ class UserLibrary(models.Model):
 
 # 2. NOVEL MODEL (Handles the Book Details in Admin)
 class Novel(models.Model):
+    HERO_SLOT_CHOICES = [
+        (1, 'Hero Slot 1'),
+        (2, 'Hero Slot 2'),
+        (3, 'Hero Slot 3'),
+    ]
+
     title = models.CharField(max_length=200)
     genre = models.CharField(max_length=50)
     rating = models.DecimalField(max_digits=3, decimal_places=1, default=0.0)
@@ -29,9 +36,24 @@ class Novel(models.Model):
     # New fields for dynamic index management
     is_featured = models.BooleanField(default=False, help_text="Show this novel in the Featured 2 Novels section")
     position = models.CharField(max_length=20, blank=True, default="center", help_text="Image position (e.g., '20% 50%')")
+    hero_slot = models.PositiveSmallIntegerField(
+        blank=True,
+        null=True,
+        choices=HERO_SLOT_CHOICES,
+        help_text="Select a homepage hero slot for this novel.",
+    )
     
     def __str__(self):
         return self.title
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['hero_slot'],
+                condition=Q(hero_slot__isnull=False),
+                name='unique_hero_slot_when_set',
+            )
+        ]
 
 
 # 3. CHAPTER MODEL (Handles the Story Text in Admin)
