@@ -1,0 +1,219 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VOID BOOK</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300;1,9..40,400;1,9..40,500;1,9..40,600&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'myapp/style.css' %}?v=3">
+</head>
+<body>
+
+<div id="vocab-tooltip" onmousedown="event.preventDefault(); event.stopPropagation();" onclick="saveHighlightedWord();" style="display:none; position:fixed; background:var(--accent); color:white; padding:6px 12px; border-radius:8px; cursor:pointer; font-size:0.75rem; font-weight:bold; z-index:2147483647; box-shadow: 0 4px 12px rgba(0,0,0,0.8); pointer-events:auto; transition: opacity 0.2s;">
+    📌 Save Word
+</div>
+
+<div id="quick-resume" class="quick-resume-fab" style="display:none;"></div>
+
+<div class="panel-overlay" id="panel-overlay" onclick="closePanel()"></div>
+
+<div class="side-panel" id="library-panel">
+  <div class="panel-header">
+    <div class="panel-title">My Library</div>
+    <button class="panel-close" onclick="closePanel()">✕</button>
+  </div>  
+  <div class="panel-tabs">
+    <div class="panel-tab active" onclick="switchPanelTab(this,'bookmarks')">Bookmarks</div>
+    <div class="panel-tab" onclick="switchPanelTab(this,'history')">History</div>
+  </div>
+  <div class="panel-body">
+    <div class="panel-tab-content active" id="panel-bookmarks"></div>
+    <div class="panel-tab-content" id="panel-history"></div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="auth-modal">
+  <div class="auth-modal">
+    <button class="reader-close" onclick="closeModal('auth-modal')" style="position:absolute;top:1rem;right:1.2rem;">✕</button>
+    <h2>VOID BOOK</h2>
+    <p class="auth-subtitle">Sign in to save your library & reading progress</p>
+    <div class="auth-tabs">
+      <div class="auth-tab active" onclick="switchAuthTab(this,'signin')">Sign In</div>
+      <div class="auth-tab" onclick="switchAuthTab(this,'signup')">Sign Up</div>
+    </div>
+    <form class="auth-form active" id="form-signin" onsubmit="handleSignIn(event)">
+      <div class="auth-error" id="si-err"></div>
+      <div class="form-group"><label>Username</label><input type="text" id="si-user" placeholder="yourname" autocomplete="off"></div>
+      <div class="form-group"><label>Password</label><input type="password" id="si-pass" placeholder="••••••••"></div>
+      <button type="submit" class="auth-btn">Sign In →</button>
+    </form>
+    <form class="auth-form" id="form-signup" onsubmit="handleSignUp(event)">
+      <div class="auth-error" id="su-err"></div>
+      <div class="form-group"><label>Username</label><input type="text" id="su-user" placeholder="yourname" autocomplete="off"></div>
+      <div class="form-group"><label>Email</label><input type="email" id="su-email" placeholder="you@email.com"></div>
+      <div class="form-group"><label>Password</label><input type="password" id="su-pass" placeholder="min. 6 chars"></div>
+      <button type="submit" class="auth-btn">Create Account →</button>
+    </form>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="reader-modal">
+  <div class="reader-modal">
+    <div class="reader-header">
+      <div>
+        <div class="reader-title" id="r-title">—</div>
+        <div style="font-family:'Space Mono',monospace;font-size:.6rem;color:var(--muted);margin-top:2px;" id="r-ch-label">—</div>
+      </div>
+      <div class="reader-controls">
+        <button class="icon-btn" onclick="toggleReaderSettings()" style="width:30px;height:30px;font-size:.9rem;font-weight:bold;font-family:'Georgia';" title="Reader Settings">Aa</button>
+        <select class="chapter-select" id="ch-select" onchange="changeChapter()"></select>
+        <button class="reader-close" onclick="closeModal('reader-modal')">✕</button>
+      </div>
+    </div>
+
+    <div class="reader-settings-menu" id="rs-menu">
+      <div class="rs-row">
+        <span class="rs-label">FONT SIZE</span>
+        <div class="rs-controls">
+          <button class="rs-btn" onclick="changeFontSize(-1)">-</button>
+          <span id="rs-size-display" style="font-family:'Space Mono';font-size:.7rem;padding:.3rem">100%</span>
+          <button class="rs-btn" onclick="changeFontSize(1)">+</button>
+        </div>
+      </div>
+      <div class="rs-row">
+        <span class="rs-label">THEME</span>
+        <div style="display:flex;gap:.6rem;">
+          <div class="theme-dot theme-dark" onclick="changeTheme('dark')" title="Dark Mode"></div>
+          <div class="theme-dot theme-sepia" onclick="changeTheme('sepia')" title="Sepia Mode"></div>
+          <div class="theme-dot theme-light" onclick="changeTheme('light')" title="Light Mode"></div>
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="reader-pages" id="r-pages"></div>
+    
+    <div class="reader-nav">
+      <button class="btn-ghost" style="font-size:.65rem;padding:.5rem 1rem;" onclick="prevPage()">← Prev</button>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:.4rem;">
+        <div class="page-tracker" id="page-tracker"></div>
+        <div class="ch-progress" id="ch-progress">Page 1 of 6</div>
+      </div>
+      <button class="btn-primary" style="font-size:.65rem;padding:.5rem 1rem;" onclick="nextPage()">Next →</button>
+    </div>
+  </div>
+</div>
+
+<nav>
+  <div class="logo" onclick="window.scrollTo({top:0,behavior:'smooth'})">VOID<span>BOOK</span></div>
+  <ul class="nav-links">
+    <li><a class="active" onclick="setNav(this)" href="#">Home</a></li>
+    <li><a onclick="setNav(this)" href="#featured">Featured</a></li>
+    <li><a onclick="setNav(this)" href="#popular">Popular Now</a></li>
+    <li><a onclick="setNav(this)" href="#rankings">Rankings</a></li>
+    <li><a onclick="setNav(this)" href="#updates">Latest Updates</a></li>
+  </ul>
+  <div class="nav-right">
+    <div class="search-wrap">
+      <div class="search-bar">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#7b7890" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="global-search" placeholder="Search titles, genres..." oninput="handleSearch(this.value)" onfocus="handleSearch(this.value)" autocomplete="off">
+      </div>
+      <div class="search-dropdown" id="search-dd"></div>
+    </div>
+    <div class="icon-btn" onclick="openPanel()" title="My Library">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      <div class="badge-dot" id="bm-badge" style="display:none">0</div>
+    </div>
+    <div id="auth-area"></div>
+  </div>
+</nav>
+
+<div class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-lines"></div>
+  <div class="hero-content">
+    <div class="hero-tag" id="home">Editor's Pick</div>
+    <h1>Discover<em>Your Next</em>Obsession</h1>
+    <p>Dive into the original light novels behind your favorite manhwa, manhua, and manga. Read the web novels that started it all, updated daily.</p>
+    <div class="hero-cta">
+      <button class="btn-primary" style="padding:.65rem 1.8rem;font-size:.75rem;" onclick="openReaderById(0)">Start Reading</button>
+      <button class="btn-ghost" onclick="document.getElementById('popular').scrollIntoView({behavior:'smooth'})">↗ Trending Now</button>
+    </div>
+  </div>
+  <div class="hero-cards">
+    <div class="hero-card" onclick="openReaderById(0)">
+      <div class="hero-card-img" style="padding: 0; overflow: hidden;">
+        <img src="{% static 'myapp/images/lookism.jpg' %}" style="width: 100%; height: 100%; object-fit: cover;" alt="Cover">
+      </div>
+      <div class="hero-card-body"><div class="hero-card-title">Lookism</div><div class="hero-card-meta"><span>Ch.482</span><span class="rating">★9.8</span></div></div>
+    </div>
+    <div class="hero-card" onclick="openReaderById(1)">
+     <div class="hero-card-img c2" style="padding: 0; overflow: hidden;">
+      <img src="{% static 'myapp/images/estate.jpg' %}" style="width: 100%; height: 100%; object-fit: cover; object-position: 20% 50%;" alt="Cover">
+    </div>
+      <div class="hero-card-body"><div class="hero-card-title">Estate Designer</div><div class="hero-card-meta"><span>Ch.211</span><span class="rating">★9.5</span></div></div>
+    </div>
+    <div class="hero-card" onclick="openReaderById(9)">
+      <div class="hero-card-img c3" style="padding: 0; overflow: hidden;">
+        <img src="{% static 'myapp/images/solo.jpg' %}" style="width: 100%; height: 100%; object-fit: cover;" alt="Cover">
+      </div>
+      <div class="hero-card-body"><div class="hero-card-title">Solo Leveling</div><div class="hero-card-meta"><span>Ch.410</span><span class="rating">★9.3</span></div></div>
+    </div>
+  </div>
+</div>
+
+<section style="padding-bottom:0">
+  <div class="genre-bar">
+    <div class="genre-pill active" onclick="filterGenre(this)">All</div>
+    <div class="genre-pill" onclick="filterGenre(this)">Action</div>
+    <div class="genre-pill" onclick="filterGenre(this)">Romance</div>
+    <div class="genre-pill" onclick="filterGenre(this)">Fantasy</div>
+    <div class="genre-pill" onclick="filterGenre(this)">Cultivation</div>
+    <div class="genre-pill" onclick="filterGenre(this)">Horror</div>
+    <div class="genre-pill" onclick="filterGenre(this)">Isekai</div>
+    <div class="genre-pill" onclick="filterGenre(this)">Sci-Fi</div>
+    <div class="genre-pill" onclick="filterGenre(this)">Sports</div>
+    <div class="genre-pill" onclick="filterGenre(this)">Mystery</div>
+  </div>
+</section>
+
+<section style="padding-top:1.5rem" id="featured">
+  <div class="section-header"><div class="section-title">Featured</div><a class="view-all">View All →</a></div>
+  
+  <div class="featured-row" id="featured-row">
+    <!-- Featured novels will be loaded dynamically from the database -->
+  </div>
+</section>
+
+<section id="popular">
+  <div class="two-col">
+    <div>
+      <div class="section-header"><div class="section-title">Popular Now</div><a class="view-all">View All →</a></div>
+      <div class="manga-grid" id="manga-grid"></div>
+    </div>
+    <div>
+      <div class="section-header" style="margin-bottom:1rem" id="rankings"><div class="section-title">Top Ranked</div></div>
+      <div class="rankings" id="rankings-list"></div>
+    </div>
+  </div>
+</section>
+
+<section id="updates">
+  <div class="section-header"><div class="section-title">Latest Updates</div><a class="view-all">View All →</a></div>
+  <div class="update-list" id="update-list"></div>
+</section>
+
+<section id="new-releases">
+  <div class="section-header"><div class="section-title">New Releases</div><a class="view-all">View All →</a></div>
+  <div class="manga-grid" id="new-releases-grid"></div>
+</section>
+
+<footer>
+  <p>© 2025 INKVERSE · All rights reserved</p>
+</footer>
+
+<script src="{% static 'myapp/script.js' %}?v=9"></script>
+</body>
+</html>

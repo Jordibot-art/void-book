@@ -1,0 +1,2401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VOID BOOk — Admin Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #07070d;
+    --surface: #0f0f1a;
+    --surface2: #161625;
+    --border: rgba(255,255,255,0.06);
+    --accent: #ff3c5f;
+    --accent2: #a855f7;
+    --accent3: #06b6d4;
+    --success: #22c55e;
+    --warn: #f59e0b;
+    --text: #e8e6f0;
+    --muted: #6b6880;
+    --faint: rgba(255,255,255,0.03);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    overflow-x: hidden;
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: 220px;
+    min-height: 100vh;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    left: 0; top: 0; bottom: 0;
+    z-index: 100;
+    transition: transform .3s ease;
+  }
+
+  .sidebar-logo {
+    padding: 1.6rem 1.4rem 1rem;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.6rem;
+    letter-spacing: .1em;
+    color: var(--text);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sidebar-logo span { color: var(--accent); }
+  .sidebar-logo small {
+    display: block;
+    font-family: 'Space Mono', monospace;
+    font-size: .5rem;
+    letter-spacing: .2em;
+    color: var(--muted);
+    margin-top: .1rem;
+  }
+
+  .sidebar-nav {
+    flex: 1;
+    padding: 1rem 0;
+    overflow-y: auto;
+  }
+
+  .nav-section {
+    font-family: 'Space Mono', monospace;
+    font-size: .55rem;
+    letter-spacing: .18em;
+    color: var(--muted);
+    padding: .8rem 1.4rem .4rem;
+    text-transform: uppercase;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    padding: .6rem 1.4rem;
+    cursor: pointer;
+    font-size: .8rem;
+    color: var(--muted);
+    border-left: 2px solid transparent;
+    transition: all .2s;
+    position: relative;
+  }
+
+  .nav-item:hover { color: var(--text); background: var(--faint); }
+  .nav-item.active {
+    color: var(--text);
+    border-left-color: var(--accent);
+    background: rgba(255,60,95,.06);
+  }
+
+  .nav-item .nav-icon { font-size: 1rem; width: 18px; text-align: center; }
+
+  .nav-badge {
+    margin-left: auto;
+    background: var(--accent);
+    color: #fff;
+    font-family: 'Space Mono', monospace;
+    font-size: .5rem;
+    padding: .1rem .35rem;
+    border-radius: 999px;
+  }
+
+  .sidebar-footer {
+    padding: 1rem 1.4rem;
+    border-top: 1px solid var(--border);
+    font-size: .72rem;
+    color: var(--muted);
+  }
+
+  .sidebar-user {
+    display: flex;
+    align-items: center;
+    gap: .7rem;
+    margin-bottom: .5rem;
+  }
+
+  .user-avatar {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .65rem;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+  }
+
+  .user-name { font-size: .75rem; color: var(--text); font-weight: 500; }
+  .user-role { font-size: .6rem; color: var(--muted); }
+
+  .logout-btn {
+    display: block;
+    width: 100%;
+    padding: .4rem .8rem;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: .6rem;
+    letter-spacing: .1em;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all .2s;
+    text-align: center;
+    margin-top: .5rem;
+  }
+
+  .logout-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── MAIN ── */
+  .main {
+    margin-left: 220px;
+    flex: 1;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── TOPBAR ── */
+  .topbar {
+    height: 56px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 1.8rem;
+    gap: 1rem;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+
+  .topbar-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: .08em;
+    color: var(--text);
+    flex: 1;
+  }
+
+  .topbar-search {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: .35rem .8rem;
+    width: 220px;
+  }
+
+  .topbar-search input {
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: .78rem;
+    width: 100%;
+  }
+
+  .topbar-search input::placeholder { color: var(--muted); }
+
+  .topbar-actions { display: flex; align-items: center; gap: .5rem; }
+
+  .icon-btn {
+    width: 34px; height: 34px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--muted);
+    transition: all .2s;
+    font-size: .9rem;
+    position: relative;
+  }
+
+  .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .notif-dot {
+    position: absolute;
+    top: 6px; right: 6px;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  /* ── CONTENT ── */
+  .content {
+    padding: 1.8rem;
+    flex: 1;
+  }
+
+  /* ── VIEWS ── */
+  .view { display: none; animation: fadeIn .3s ease; }
+  .view.active { display: block; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── PAGE HEADER ── */
+  .page-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 1.8rem;
+    gap: 1rem;
+  }
+
+  .page-header h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    letter-spacing: .08em;
+    line-height: 1;
+  }
+
+  .page-header h1 span { color: var(--accent); }
+
+  .page-header p {
+    font-size: .78rem;
+    color: var(--muted);
+    margin-top: .2rem;
+  }
+
+  /* ── STAT CARDS ── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.8rem;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.2rem 1.4rem;
+    position: relative;
+    overflow: hidden;
+    transition: border-color .2s;
+  }
+
+  .stat-card:hover { border-color: rgba(255,255,255,.12); }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .stat-card.red::before { background: var(--accent); }
+  .stat-card.purple::before { background: var(--accent2); }
+  .stat-card.cyan::before { background: var(--accent3); }
+  .stat-card.green::before { background: var(--success); }
+
+  .stat-icon {
+    font-size: 1.4rem;
+    margin-bottom: .7rem;
+    opacity: .7;
+  }
+
+  .stat-label {
+    font-family: 'Space Mono', monospace;
+    font-size: .58rem;
+    letter-spacing: .15em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .stat-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.2rem;
+    letter-spacing: .05em;
+    line-height: 1.1;
+    margin: .15rem 0;
+  }
+
+  .stat-delta {
+    font-size: .7rem;
+    color: var(--success);
+  }
+
+  .stat-delta.down { color: var(--accent); }
+
+  .stat-glow {
+    position: absolute;
+    bottom: -30px; right: -30px;
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    opacity: .06;
+    filter: blur(20px);
+  }
+
+  .stat-card.red .stat-glow { background: var(--accent); }
+  .stat-card.purple .stat-glow { background: var(--accent2); }
+  .stat-card.cyan .stat-glow { background: var(--accent3); }
+  .stat-card.green .stat-glow { background: var(--success); }
+
+  /* ── TWO COL ── */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .card-header {
+    padding: 1rem 1.3rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .8rem;
+  }
+
+  .card-title {
+    font-family: 'Space Mono', monospace;
+    font-size: .65rem;
+    letter-spacing: .15em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .card-body { padding: 1.3rem; }
+
+  /* ── ACTIVITY FEED ── */
+  .activity-item {
+    display: flex;
+    gap: .9rem;
+    align-items: flex-start;
+    padding: .7rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .activity-item:last-child { border-bottom: none; }
+
+  .activity-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-top: 4px;
+    flex-shrink: 0;
+  }
+
+  .activity-dot.red { background: var(--accent); }
+  .activity-dot.purple { background: var(--accent2); }
+  .activity-dot.cyan { background: var(--accent3); }
+  .activity-dot.green { background: var(--success); }
+
+  .activity-text { font-size: .78rem; color: var(--text); }
+  .activity-text strong { font-weight: 600; }
+  .activity-time { font-family: 'Space Mono', monospace; font-size: .58rem; color: var(--muted); margin-top: .2rem; }
+
+  /* ── MINI BAR CHART ── */
+  .chart-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    height: 60px;
+    margin-top: .5rem;
+  }
+
+  .chart-bar {
+    flex: 1;
+    background: var(--accent);
+    opacity: .5;
+    border-radius: 3px 3px 0 0;
+    transition: opacity .2s;
+    cursor: pointer;
+  }
+
+  .chart-bar:hover { opacity: 1; }
+  .chart-bar.purple { background: var(--accent2); }
+
+  .chart-labels {
+    display: flex;
+    gap: 4px;
+    margin-top: .3rem;
+  }
+
+  .chart-labels span {
+    flex: 1;
+    text-align: center;
+    font-family: 'Space Mono', monospace;
+    font-size: .45rem;
+    color: var(--muted);
+  }
+
+  /* ── TOP LIST ── */
+  .top-item {
+    display: flex;
+    align-items: center;
+    gap: .8rem;
+    padding: .6rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .top-item:last-child { border-bottom: none; }
+
+  .top-rank {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1rem;
+    color: var(--muted);
+    width: 20px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .top-rank.gold { color: #f59e0b; }
+  .top-rank.silver { color: #9ca3af; }
+  .top-rank.bronze { color: #b45309; }
+
+  .top-cover {
+    width: 36px; height: 50px;
+    border-radius: 4px;
+    object-fit: cover;
+    background: var(--surface2);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .8rem;
+    overflow: hidden;
+  }
+
+  .top-info { flex: 1; min-width: 0; }
+  .top-title { font-size: .8rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .top-meta { font-size: .68rem; color: var(--muted); margin-top: .1rem; }
+
+  .top-views {
+    font-family: 'Space Mono', monospace;
+    font-size: .6rem;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  /* ── PROGRESS BAR ── */
+  .prog-bar {
+    height: 4px;
+    background: var(--surface2);
+    border-radius: 999px;
+    overflow: hidden;
+    margin-top: .5rem;
+  }
+
+  .prog-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: var(--accent);
+    transition: width .4s ease;
+  }
+
+  .prog-fill.purple { background: var(--accent2); }
+  .prog-fill.cyan { background: var(--accent3); }
+  .prog-fill.green { background: var(--success); }
+
+  /* ── TABLE ── */
+  .data-table-wrap {
+    overflow-x: auto;
+  }
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .78rem;
+  }
+
+  .data-table th {
+    text-align: left;
+    padding: .7rem 1rem;
+    font-family: 'Space Mono', monospace;
+    font-size: .55rem;
+    letter-spacing: .13em;
+    color: var(--muted);
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  .data-table td {
+    padding: .75rem 1rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    vertical-align: middle;
+  }
+
+  .data-table tr:last-child td { border-bottom: none; }
+
+  .data-table tr:hover td { background: var(--faint); }
+
+  .badge {
+    display: inline-block;
+    padding: .15rem .55rem;
+    border-radius: 999px;
+    font-size: .6rem;
+    font-family: 'Space Mono', monospace;
+    text-transform: uppercase;
+  }
+
+  .badge-hot { background: rgba(255,60,95,.15); color: var(--accent); border: 1px solid rgba(255,60,95,.2); }
+  .badge-new { background: rgba(34,197,94,.12); color: var(--success); border: 1px solid rgba(34,197,94,.2); }
+  .badge-classic { background: rgba(168,85,247,.12); color: var(--accent2); border: 1px solid rgba(168,85,247,.2); }
+  .badge-trending { background: rgba(6,182,212,.12); color: var(--accent3); border: 1px solid rgba(6,182,212,.2); }
+
+  .genre-tag {
+    display: inline-block;
+    padding: .15rem .5rem;
+    border-radius: 4px;
+    font-size: .65rem;
+    background: var(--surface2);
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+
+  /* ── RATING STARS ── */
+  .stars { color: #f59e0b; font-size: .75rem; }
+
+  /* ── BUTTONS ── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .45rem 1rem;
+    border-radius: 6px;
+    font-family: 'Space Mono', monospace;
+    font-size: .65rem;
+    letter-spacing: .08em;
+    cursor: pointer;
+    border: none;
+    transition: all .2s;
+    text-transform: uppercase;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .btn-primary:hover { background: #ff5570; }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+
+  .btn-ghost:hover { border-color: var(--text); color: var(--text); }
+
+  .btn-sm { padding: .3rem .7rem; font-size: .58rem; }
+
+  .btn-danger {
+    background: rgba(255,60,95,.12);
+    color: var(--accent);
+    border: 1px solid rgba(255,60,95,.2);
+  }
+
+  .btn-danger:hover { background: rgba(255,60,95,.2); }
+
+  /* ── MODAL ── */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.7);
+    backdrop-filter: blur(4px);
+    z-index: 200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-backdrop.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    width: 520px;
+    max-width: 95vw;
+    max-height: 85vh;
+    overflow-y: auto;
+    position: relative;
+  }
+
+  .modal-header {
+    padding: 1.3rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .modal-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.3rem;
+    letter-spacing: .08em;
+  }
+
+  .modal-body { 
+    padding: 1.5rem;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    word-break: break-word;
+    hyphens: auto;
+  }
+
+  .modal-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: flex-end;
+    gap: .7rem;
+  }
+
+  /* ── FORM ── */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .form-group { display: flex; flex-direction: column; gap: .4rem; }
+  .form-group.full { grid-column: 1 / -1; }
+
+  .form-label {
+    font-family: 'Space Mono', monospace;
+    font-size: .6rem;
+    letter-spacing: .13em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .form-input, .form-select, .form-textarea {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: .55rem .8rem;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: .8rem;
+    outline: none;
+    transition: border-color .2s;
+    width: 100%;
+  }
+
+  .form-input:focus, .form-select:focus, .form-textarea:focus {
+    border-color: var(--accent);
+  }
+
+  .form-textarea {
+    resize: vertical;
+    min-height: 100px;
+    font-family: 'Space Mono', monospace;
+    font-size: .7rem;
+    line-height: 1.6;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    word-break: break-word;
+  }
+
+  /* ── SEARCH + FILTER BAR ── */
+  .filter-bar {
+    display: flex;
+    align-items: center;
+    gap: .7rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .filter-search {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: .4rem .8rem;
+    flex: 1;
+    min-width: 160px;
+  }
+
+  .filter-search input {
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-size: .78rem;
+    font-family: 'DM Sans', sans-serif;
+    width: 100%;
+  }
+
+  .filter-search input::placeholder { color: var(--muted); }
+
+  .filter-select {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: .4rem .8rem;
+    color: var(--text);
+    font-size: .75rem;
+    font-family: 'DM Sans', sans-serif;
+    outline: none;
+    cursor: pointer;
+  }
+
+  /* ── PAGINATION ── */
+  .pagination {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    justify-content: flex-end;
+    margin-top: 1rem;
+  }
+
+  .page-btn {
+    width: 30px; height: 30px;
+    border-radius: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: .65rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all .2s;
+  }
+
+  .page-btn:hover, .page-btn.active {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* ── CHAPTER LIST ── */
+  .ch-list-item {
+    display: flex;
+    align-items: center;
+    gap: .8rem;
+    padding: .6rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .ch-list-item:last-child { border-bottom: none; }
+
+  .ch-number {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: .9rem;
+    color: var(--accent);
+    width: 28px;
+    flex-shrink: 0;
+  }
+
+  .ch-words { font-size: .68rem; color: var(--muted); margin-top: .1rem; }
+
+  /* ── USER TABLE AVATAR ── */
+  .u-avatar {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .6rem;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+  }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 999px; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 1024px) {
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .two-col { grid-template-columns: 1fr; }
+    .three-col { grid-template-columns: 1fr 1fr; }
+  }
+
+  @media (max-width: 768px) {
+    .sidebar { transform: translateX(-100%); }
+    .sidebar.open { transform: translateX(0); }
+    .main { margin-left: 0; }
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+    .three-col { grid-template-columns: 1fr; }
+  }
+
+  /* ── TOOLTIP ── */
+  .tooltip-wrap { position: relative; }
+  .tooltip-wrap:hover .tooltip { display: block; }
+  .tooltip {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: .3rem .6rem;
+    border-radius: 4px;
+    font-size: .65rem;
+    color: var(--text);
+    white-space: nowrap;
+    z-index: 999;
+  }
+
+  /* action row */
+  .action-row { display: flex; gap: .4rem; }
+
+  /* cover thumb */
+  .cover-thumb {
+    width: 32px; height: 44px;
+    border-radius: 4px;
+    object-fit: cover;
+    background: var(--surface2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .7rem;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  /* toast */
+  .toast-container { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 999; display: flex; flex-direction: column; gap: .5rem; }
+  .toast {
+    padding: .6rem 1rem;
+    border-radius: 6px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    font-size: .75rem;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    animation: slideIn .3s ease;
+  }
+  @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+  .toast.success { border-color: rgba(34,197,94,.3); }
+  .toast.error { border-color: rgba(255,60,95,.3); }
+
+  /* status pill */
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    padding: .15rem .55rem;
+    border-radius: 999px;
+    font-size: .6rem;
+    font-family: 'Space Mono', monospace;
+  }
+  .status-pill::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+  .status-ongoing { color: var(--success); background: rgba(34,197,94,.1); }
+  .status-completed { color: var(--accent3); background: rgba(6,182,212,.1); }
+  .status-hiatus { color: var(--warn); background: rgba(245,158,11,.1); }
+
+  /* empty state */
+  .empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: var(--muted);
+  }
+  .empty-state .empty-icon { font-size: 2rem; margin-bottom: .7rem; opacity: .4; }
+  .empty-state p { font-size: .8rem; }
+
+</style>
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    VOID<span>BOOK</span>
+    <small>ADMIN DASHBOARD</small>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section">Overview</div>
+    <div class="nav-item active" onclick="showView('dashboard', this)">
+      <span class="nav-icon">◈</span> Dashboard
+    </div>
+    <div class="nav-item" onclick="showView('analytics', this)">
+      <span class="nav-icon">◉</span> Analytics
+    </div>
+
+    <div class="nav-section">Content</div>
+    <div class="nav-item" onclick="showView('novels', this)">
+      <span class="nav-icon">▣</span> Novels
+      <span class="nav-badge" id="novel-count-badge">—</span>
+    </div>
+    <div class="nav-item" onclick="showView('featured', this)">
+      <span class="nav-icon">★</span> Featured
+      <span class="nav-badge" id="featured-count-badge">0/2</span>
+    </div>
+    <div class="nav-item" onclick="showView('chapters', this)">
+      <span class="nav-icon">▤</span> Chapters
+    </div>
+    <div class="nav-item" onclick="showView('add-novel', this)">
+      <span class="nav-icon">⊕</span> Add Novel
+    </div>
+
+    <div class="nav-section">Users</div>
+    <div class="nav-item" onclick="showView('users', this)">
+      <span class="nav-icon">◎</span> Users
+    </div>
+    <div class="nav-item" onclick="showView('libraries', this)">
+      <span class="nav-icon">▦</span> Libraries
+    </div>
+
+    <div class="nav-section">System</div>
+    <div class="nav-item" onclick="showView('settings', this)">
+      <span class="nav-icon">◧</span> Settings
+    </div>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="sidebar-user">
+      <div class="user-avatar">AD</div>
+      <div>
+        <div class="user-name">Admin</div>
+        <div class="user-role">Superuser</div>
+      </div>
+    </div>
+    <button class="logout-btn" onclick="handleLogout()">↩ LOGOUT</button>
+  </div>
+</aside>
+
+<div class="main">
+
+  <div class="topbar">
+    <div class="topbar-title" id="topbar-title">Dashboard</div>
+    <div class="topbar-actions">
+      <div class="icon-btn tooltip-wrap" onclick="refreshData()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+        <span class="tooltip">Refresh</span>
+      </div>
+      <a href="/" target="_blank" class="icon-btn tooltip-wrap">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        <span class="tooltip">View Site</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <div class="view active" id="view-dashboard">
+      <div class="page-header">
+        <div>
+          <h1>OVER<span>VIEW</span></h1>
+          <p>Welcome back. Here's what's happening on VOID BOOK.</p>
+        </div>
+        <button class="btn btn-primary" onclick="showView('add-novel', document.querySelector('.nav-item:nth-child(8)'))">
+          + Add Novel
+        </button>
+      </div>
+
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat-card red">
+          <div class="stat-glow"></div>
+          <div class="stat-icon">📚</div>
+          <div class="stat-label">Total Novels</div>
+          <div class="stat-value" id="stat-novels">—</div>
+          <div class="stat-delta">Live Data</div>
+        </div>
+        <div class="stat-card purple">
+          <div class="stat-glow"></div>
+          <div class="stat-icon">📄</div>
+          <div class="stat-label">Total Chapters</div>
+          <div class="stat-value" id="stat-chapters">—</div>
+          <div class="stat-delta">Live Data</div>
+        </div>
+        <div class="stat-card cyan">
+          <div class="stat-glow"></div>
+          <div class="stat-icon">👥</div>
+          <div class="stat-label">Registered Users</div>
+          <div class="stat-value" id="stat-users">—</div>
+          <div class="stat-delta">Live Data</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-glow"></div>
+          <div class="stat-icon">🔖</div>
+          <div class="stat-label">Total Bookmarks</div>
+          <div class="stat-value" id="stat-bookmarks">—</div>
+          <div class="stat-delta">Live Data</div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Recent Activity</span>
+            <span style="font-size:.68rem;color:var(--muted)">Live</span>
+          </div>
+          <div class="card-body" id="activity-feed">
+            <div class="activity-item">
+              <div class="activity-dot red"></div>
+              <div>
+                <div class="activity-text">Dashboard connected to <strong>Django API</strong></div>
+                <div class="activity-time">Just now</div>
+              </div>
+            </div>
+            </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Top Novels (DB)</span>
+            <button class="btn btn-ghost btn-sm" onclick="showView('novels', document.querySelectorAll('.nav-item')[3])">View All</button>
+          </div>
+          <div class="card-body" id="dash-top-novels">
+            <div class="empty-state"><div class="empty-icon">📚</div><p>Loading novels...</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="three-col" style="margin-top:1rem">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Genre Breakdown</span></div>
+          <div class="card-body" id="genre-breakdown">
+            <div class="empty-state"><div class="empty-icon">◉</div><p>Loading...</p></div>
+          </div>
+        </div>
+        <div class="card" style="grid-column: span 2">
+          <div class="card-header"><span class="card-title">Chapters Per Novel</span></div>
+          <div class="card-body">
+            <div class="chart-bars" id="ch-chart"></div>
+            <div class="chart-labels" id="ch-chart-labels"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="view" id="view-analytics">
+      <div class="page-header">
+        <div>
+          <h1>ANALYTICS</h1>
+          <p>Platform metrics and reading trends.</p>
+        </div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card red">
+          <div class="stat-glow"></div>
+          <div class="stat-icon">📖</div>
+          <div class="stat-label">Avg. Chapters/Novel</div>
+          <div class="stat-value" id="avg-ch">—</div>
+          <div class="stat-delta">Across all novels</div>
+        </div>
+        <div class="stat-card purple">
+          <div class="stat-glow"></div>
+          <div class="stat-icon">⭐</div>
+          <div class="stat-label">Avg. Rating</div>
+          <div class="stat-value" id="avg-rating">—</div>
+          <div class="stat-delta">Platform average</div>
+        </div>
+        <div class="stat-card cyan">
+          <div class="stat-glow"></div>
+          <div class="stat-icon">🔥</div>
+          <div class="stat-label">Novels w/ Badge</div>
+          <div class="stat-value" id="badge-count">—</div>
+          <div class="stat-delta">Hot/New/etc</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-glow"></div>
+          <div class="stat-icon">📂</div>
+          <div class="stat-label">Genres Covered</div>
+          <div class="stat-value" id="genre-count">—</div>
+          <div class="stat-delta">Unique genres</div>
+        </div>
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Rating Distribution</span></div>
+          <div class="card-body" id="rating-dist"></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Novels by Genre</span></div>
+          <div class="card-body" id="genre-dist"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="view" id="view-novels">
+      <div class="page-header">
+        <div>
+          <h1>NOVELS</h1>
+          <p>Manage your novel catalog.</p>
+        </div>
+        <button class="btn btn-primary" onclick="showView('add-novel', null)">+ Add Novel</button>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="filter-bar" style="margin:0;flex:1">
+            <div class="filter-search" style="flex:1">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              <input type="text" placeholder="Search novels..." id="novel-filter" oninput="filterNovels(this.value)">
+            </div>
+            <select class="filter-select" id="genre-filter" onchange="filterNovels(document.getElementById('novel-filter').value)">
+              <option value="">All Genres</option>
+            </select>
+          </div>
+        </div>
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Cover</th>
+                <th>Title</th>
+                <th>Genre</th>
+                <th>Chapters</th>
+                <th>Rating</th>
+                <th>Badge</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="novel-table-body">
+              <tr><td colspan="7"><div class="empty-state"><div class="empty-icon">📚</div><p>Loading novels from database...</p></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="padding:.8rem 1rem;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:.7rem;color:var(--muted)" id="novel-count-text">—</span>
+          <div class="pagination" id="novel-pagination"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="view" id="view-featured">
+      <div class="page-header">
+        <div>
+          <h1>FEATURED <span>NOVELS</span></h1>
+          <p>Select up to 2 novels to feature on the homepage.</p>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:1rem">
+        <div class="card-header">
+          <span class="card-title">Currently Featured (<span id="featured-count">0</span>/2)</span>
+        </div>
+        <div class="card-body" id="featured-current">
+          <div class="empty-state"><div class="empty-icon">★</div><p>No novels currently featured. Select novels below to feature them on the homepage.</p></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">All Novels</span>
+          <div class="filter-search" style="flex:1;max-width:250px;margin-left:1rem">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input type="text" placeholder="Search novels..." id="featured-filter" oninput="renderFeaturedManagement()">
+          </div>
+        </div>
+        <div class="card-body" id="featured-all-list" style="max-height:500px;overflow-y:auto">
+          <div class="empty-state"><div class="empty-icon">📚</div><p>Loading novels...</p></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="view" id="view-chapters">
+      <div class="page-header">
+        <div>
+          <h1>CHAPTERS</h1>
+          <p>View and manage all chapters across novels.</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="filter-bar" style="margin:0;flex:1">
+            <div class="filter-search" style="flex:1">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              <input type="text" placeholder="Search by novel title..." id="ch-filter" oninput="filterChapters(this.value)">
+            </div>
+            <select class="filter-select" id="ch-novel-filter" onchange="filterChapters(document.getElementById('ch-filter').value)">
+              <option value="">All Novels</option>
+            </select>
+          </div>
+        </div>
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Novel</th>
+                <th>Chapter</th>
+                <th>Words (est.)</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="ch-table-body">
+              <tr><td colspan="5"><div class="empty-state"><div class="empty-icon">📄</div><p>Loading chapters...</p></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="padding:.8rem 1rem;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:.7rem;color:var(--muted)" id="ch-count-text">—</span>
+          <div class="pagination" id="ch-pagination"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="view" id="view-add-novel">
+      <div class="page-header">
+        <div>
+          <h1>ADD <span>NOVEL</span></h1>
+          <p>Create a new novel entry in the database.</p>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;align-items:start">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Novel Details</span></div>
+          <div class="card-body">
+            <div class="form-grid">
+              <div class="form-group full">
+                <label class="form-label">Title *</label>
+                <input class="form-input" id="new-title" type="text" placeholder="e.g. Solo Leveling">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Genre *</label>
+                <select class="form-select" id="new-genre">
+                  <option value="">Select Genre</option>
+                  <option>Action</option><option>Romance</option><option>Fantasy</option>
+                  <option>Cultivation</option><option>Horror</option><option>Isekai</option>
+                  <option>Sci-Fi</option><option>Sports</option><option>Mystery</option>
+                  <option>Slice of Life</option><option>Comedy</option><option>Drama</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Rating (0.0–10.0)</label>
+                <input class="form-input" id="new-rating" type="number" placeholder="9.5" min="0" max="10" step="0.1">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Badge</label>
+                <select class="form-select" id="new-badge">
+                  <option value="">None</option>
+                  <option value="hot">🔥 Hot</option>
+                  <option value="new">✨ New</option>
+                  <option value="trending">📈 Trending</option>
+                  <option value="classic">🏆 Classic</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Kanji / Symbol</label>
+                <input class="form-input" id="new-kanji" type="text" placeholder="小説" maxlength="10">
+              </div>
+              <div class="form-group full">
+                <label class="form-label">Card Color (CSS Gradient)</label>
+                <input class="form-input" id="new-color" type="text" placeholder="linear-gradient(135deg,#1a0533,#3d0a6b,#ff3c5f)" value="linear-gradient(135deg,#1a0533,#3d0a6b,#ff3c5f)">
+              </div>
+              <div class="form-group full">
+                <label class="form-label">Cover Image URL (optional)</label>
+                <input class="form-input" id="new-cover" type="file" accept="image/*" style="padding: .4rem .8rem;">
+              </div>
+            </div>
+            <div style="margin-top:1.2rem;display:flex;gap:.7rem">
+              <button class="btn btn-primary" onclick="submitNovel()">Create Novel →</button>
+              <button class="btn btn-ghost" onclick="clearForm()">Clear</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="card-title">Quick Add Chapter</span></div>
+          <div class="card-body">
+            <div class="form-grid">
+              <div class="form-group full">
+                <label class="form-label">Novel *</label>
+                <select class="form-select" id="ch-novel-sel">
+                  <option value="">Select Novel</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Chapter Number *</label>
+                <input class="form-input" id="ch-num" type="number" placeholder="1" min="1">
+              </div>
+            </div>
+            <div class="form-group" style="margin-top:.8rem">
+              <label class="form-label">Content (use double blank lines for paragraphs)</label>
+              <textarea class="form-textarea" id="ch-content" style="min-height:200px" placeholder="Paste chapter content here..."></textarea>
+            </div>
+            <div style="margin-top:1rem">
+              <button class="btn btn-primary" onclick="submitChapter()">Add Chapter →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="view" id="view-users">
+      <div class="page-header">
+        <div>
+          <h1>USERS</h1>
+          <p>Registered accounts on INKVERSE.</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="filter-bar" style="margin:0;flex:1">
+            <div class="filter-search" style="flex:1">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              <input type="text" placeholder="Search users..." id="user-filter" oninput="filterUsers(this.value)">
+            </div>
+          </div>
+        </div>
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Date Joined</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="user-table-body">
+              <tr><td colspan="6"><div class="empty-state"><div class="empty-icon">👥</div><p>Loading users...</p></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="padding:.8rem 1rem;border-top:1px solid var(--border)">
+          <span style="font-size:.7rem;color:var(--muted)" id="user-count-text">—</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="view" id="view-libraries">
+      <div class="page-header">
+        <div>
+          <h1>LIBRARIES</h1>
+          <p>User reading libraries and progress data.</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Bookmarks</th>
+                <th>History Items</th>
+                <th>Progress Entries</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="lib-table-body">
+              <tr><td colspan="5"><div class="empty-state"><div class="empty-icon">🔖</div><p>Loading library data...</p></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="view" id="view-settings">
+      <div class="page-header">
+        <div>
+          <h1>SETTINGS</h1>
+          <p>Dashboard configuration and preferences.</p>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;align-items:start">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Dashboard API</span></div>
+          <div class="card-body">
+            <div class="form-group">
+              <label class="form-label">API Base URL</label>
+              <input class="form-input" id="api-base" type="text" value="/api" placeholder="/api">
+            </div>
+            <div style="margin-top:1rem;display:flex;gap:.7rem">
+              <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+              <button class="btn btn-ghost" onclick="refreshData()">Test Connection</button>
+            </div>
+            <div id="connection-status" style="margin-top:.8rem;font-size:.75rem;color:var(--muted)"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">About</span></div>
+          <div class="card-body">
+            <p style="font-size:.78rem;color:var(--muted);line-height:1.7">
+              INKVERSE Admin Dashboard v1.0<br>
+              Built for Django backend management.<br><br>
+              This dashboard reads from your <code style="font-family:'Space Mono';font-size:.7rem;background:var(--surface2);padding:.1rem .3rem;border-radius:3px">/api/novels/</code> endpoint and the Django admin API.
+              Connect your Django URLs to the endpoints used in this dashboard.
+            </p>
+            <div style="margin-top:1rem">
+              <a href="/admin/" target="_blank" class="btn btn-ghost btn-sm">Open Django Admin ↗</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div></div><div class="modal-backdrop" id="novel-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="nm-title">Novel Detail</div>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('novel-modal')">✕</button>
+    </div>
+    <div class="modal-body" id="nm-body"></div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="ch-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="chm-title">Chapter Content</div>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('ch-modal')">✕</button>
+    </div>
+    <div class="modal-body" id="chm-body"></div>
+  </div>
+</div>
+
+<!-- User Edit Modal -->
+<div class="modal-backdrop" id="user-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="um-title">Edit User</div>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('user-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="um-user-id">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label class="form-label">Username</label>
+          <input class="form-input" id="um-username" type="text" placeholder="Username">
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Email</label>
+          <input class="form-input" id="um-email" type="email" placeholder="Email">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('user-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveUserEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+// ═══════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════
+let novels = [];
+let users = [];
+let libraries = [];
+let allChapters = [];
+let activities = [];
+let novelPage = 1, chPage = 1;
+const PER_PAGE = 12;
+
+let apiBase = localStorage.getItem('inkverse-api-base') || '/api';
+
+// ═══════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════
+function showView(id, navEl) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + id).classList.add('active');
+
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if (navEl) navEl.classList.add('active');
+
+  const titles = {
+    dashboard: 'Dashboard', analytics: 'Analytics',
+    novels: 'Novels', chapters: 'Chapters', 'add-novel': 'Add Novel',
+    users: 'Users', libraries: 'Libraries', settings: 'Settings'
+  };
+  document.getElementById('topbar-title').textContent = titles[id] || id;
+
+  if (id === 'novels') renderNovelsTable();
+  if (id === 'chapters') renderChaptersTable();
+  if (id === 'users') renderUsersTable();
+  if (id === 'libraries') renderLibrariesTable();
+  if (id === 'analytics') renderAnalytics();
+  if (id === 'add-novel') populateNovelSelects();
+}
+
+// ═══════════════════════════════════════
+// DATA FETCHING (Matched to Django Models)
+// ═══════════════════════════════════════
+async function fetchAll() {
+  // 1. Fetch Novels
+  try {
+    await fetchNovels();
+  } catch(e) {
+    console.error('Novels error:', e);
+    document.getElementById('dash-top-novels').innerHTML = '<div class="empty-state"><div class="empty-icon">❌</div><p>API Connection Failed</p></div>';
+    document.getElementById('novel-table-body').innerHTML = '<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">❌</div><p>API Connection Failed</p></div></td></tr>';
+  }
+
+  // 2. Fetch Users
+  try {
+    await fetchUsers();
+  } catch(e) {
+    console.error('Users error:', e);
+  }
+
+  // 3. Fetch Libraries
+  try {
+    await fetchLibraries();
+  } catch(e) {
+    console.error('Libraries error:', e);
+  }
+
+  // 4. Fetch Activities
+  try {
+    await fetchActivities();
+  } catch(e) {
+    console.error('Activities error:', e);
+  }
+
+  // Render whatever successfully loaded
+  renderDashboard();
+  toast('Data fetch complete', 'success');
+}
+
+async function fetchNovels() {
+  // Added timestamp to bypass browser cache
+  const r = await fetch(`${apiBase}/novels/?t=${new Date().getTime()}`, { cache: 'no-store' });
+  if (!r.ok) throw new Error('novels endpoint failed');
+  const data = await r.json();
+  
+  novels = data.map(n => ({
+    ...n,
+    // Count keys in the chapter object { "1": [...], "2": [...] }
+    chapterCount: n.chapters ? Object.keys(n.chapters).length : 0
+  }));
+  buildChapterList();
+}
+
+async function fetchUsers() {
+  // Added timestamp to bypass browser cache
+  const r = await fetch(`${apiBase}/admin/users/?t=${new Date().getTime()}`, { cache: 'no-store' });
+  if (!r.ok) throw new Error('users endpoint failed');
+  users = await r.json();
+}
+
+async function fetchLibraries() {
+  // Added timestamp to bypass browser cache
+  const r = await fetch(`${apiBase}/admin/libraries/?t=${new Date().getTime()}`, { cache: 'no-store' });
+  if (!r.ok) throw new Error('libraries endpoint failed');
+  libraries = await r.json();
+}
+
+async function fetchActivities() {
+  // Added timestamp to bypass browser cache
+  const r = await fetch(`${apiBase}/admin/activities/?t=${new Date().getTime()}&limit=15`, { cache: 'no-store' });
+  if (!r.ok) throw new Error('activities endpoint failed');
+  activities = await r.json();
+}
+
+function buildChapterList() {
+  allChapters = [];
+  novels.forEach(n => {
+    if (n.chapters) {
+      Object.entries(n.chapters).forEach(([num, contentArray]) => {
+        // If content is an array (from your .split('\n\n')), join it back for the admin view
+        const displayContent = Array.isArray(contentArray) ? contentArray.join('\n\n') : contentArray;
+        
+        allChapters.push({ 
+          novel: n.title, 
+          novelId: n.id, 
+          chNum: parseInt(num), 
+          content: displayContent 
+        });
+      });
+    }
+  });
+  allChapters.sort((a,b) => a.novel.localeCompare(b.novel) || a.chNum - b.chNum);
+}
+// ═══════════════════════════════════════
+// DASHBOARD RENDER
+// ═══════════════════════════════════════
+function renderDashboard() {
+  document.getElementById('stat-novels').textContent = novels.length;
+  const totalCh = novels.reduce((s,n)=>s+(n.chapterCount||0),0);
+  document.getElementById('stat-chapters').textContent = totalCh.toLocaleString();
+  document.getElementById('stat-users').textContent = users.length;
+  const totalBm = libraries.reduce((s,l)=>s+(Array.isArray(l.bookmarks)?l.bookmarks.length:0),0);
+  document.getElementById('stat-bookmarks').textContent = totalBm;
+  document.getElementById('novel-count-badge').textContent = novels.length;
+
+  // Top novels
+  const topEl = document.getElementById('dash-top-novels');
+  if (!novels.length) { topEl.innerHTML = '<div class="empty-state"><div class="empty-icon">📚</div><p>No novels found in database</p></div>'; }
+  else {
+    const sorted = [...novels].sort((a,b)=>(b.rating||0)-(a.rating||0)).slice(0,5);
+    topEl.innerHTML = sorted.map((n,i) => `
+      <div class="top-item">
+        <div class="top-rank ${i===0?'gold':i===1?'silver':i===2?'bronze':''}">${i+1}</div>
+        <div class="top-cover" style="${n.color?'background:'+n.color:''}">
+          ${n.coverUrl ? `<img src="${n.coverUrl}" style="width:100%;height:100%;object-fit:cover">` : n.kanji}
+        </div>
+        <div class="top-info">
+          <div class="top-title">${n.title}</div>
+          <div class="top-meta">${n.genre || '—'} · Ch.${n.chapterCount||'?'}</div>
+        </div>
+        <div class="top-views">★${n.rating||'—'}</div>
+      </div>
+    `).join('');
+  }
+
+  // Render Recent Activity
+  renderActivityFeed();
+
+  renderGenreBreakdown();
+
+  const chartBars = document.getElementById('ch-chart');
+  const chartLabels = document.getElementById('ch-chart-labels');
+  const top8 = [...novels].sort((a,b)=>(b.chapterCount||0)-(a.chapterCount||0)).slice(0,8);
+  const maxCh = Math.max(...top8.map(n=>n.chapterCount||1));
+  chartBars.innerHTML = top8.map(n=>`
+    <div class="chart-bar ${n.badge==='new'?'purple':''}" style="height:${Math.round(((n.chapterCount||1)/maxCh)*56)}px" title="${n.title}: ${n.chapterCount} chapters"></div>
+  `).join('');
+  chartLabels.innerHTML = top8.map(n=>`<span>${n.title.substring(0,6)}</span>`).join('');
+}
+
+function renderActivityFeed() {
+  const feedEl = document.getElementById('activity-feed');
+  if (!activities.length) {
+    feedEl.innerHTML = '<div class="empty-state"><div class="empty-icon">◉</div><p>No recent activity</p></div>';
+    return;
+  }
+  
+  feedEl.innerHTML = activities.slice(0, 10).map(activity => `
+    <div class="activity-item">
+      <div class="activity-dot ${activity.color}"></div>
+      <div>
+        <div class="activity-text">${activity.description}</div>
+        <div class="activity-time">${activity.timestamp} · by ${activity.actor}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderGenreBreakdown() {
+  const counts = {};
+  novels.forEach(n=>{ if(n.genre) counts[n.genre] = (counts[n.genre]||0)+1; });
+  const total = novels.length || 1;
+  const colors = ['var(--accent)','var(--accent2)','var(--accent3)','var(--success)','var(--warn)'];
+  const el = document.getElementById('genre-breakdown');
+  if (!Object.keys(counts).length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">◉</div><p>No data</p></div>'; return; }
+  el.innerHTML = Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([g,c],i)=>`
+    <div style="margin-bottom:.8rem">
+      <div style="display:flex;justify-content:space-between;font-size:.72rem;margin-bottom:.3rem">
+        <span>${g}</span><span style="color:var(--muted)">${c}</span>
+      </div>
+      <div class="prog-bar"><div class="prog-fill" style="width:${Math.round((c/total)*100)}%;background:${colors[i%colors.length]}"></div></div>
+    </div>
+  `).join('');
+}
+
+// ═══════════════════════════════════════
+// ANALYTICS
+// ═══════════════════════════════════════
+function renderAnalytics() {
+  if (!novels.length) return;
+  const totalCh = novels.reduce((s,n)=>s+(n.chapterCount||0),0);
+  document.getElementById('avg-ch').textContent = (totalCh/novels.length).toFixed(1);
+  const ratings = novels.filter(n=>n.rating);
+  document.getElementById('avg-rating').textContent = ratings.length ? (ratings.reduce((s,n)=>s+parseFloat(n.rating),0)/ratings.length).toFixed(1) : '—';
+  document.getElementById('badge-count').textContent = novels.filter(n=>n.badge).length;
+  const genres = new Set(novels.map(n=>n.genre).filter(Boolean));
+  document.getElementById('genre-count').textContent = genres.size;
+
+  const buckets = {'≥9.5':0,'9.0–9.4':0,'8.5–8.9':0,'<8.5':0};
+  novels.forEach(n=>{
+    const r = parseFloat(n.rating||0);
+    if(r>=9.5) buckets['≥9.5']++;
+    else if(r>=9.0) buckets['9.0–9.4']++;
+    else if(r>=8.5) buckets['8.5–8.9']++;
+    else buckets['<8.5']++;
+  });
+  const maxB = Math.max(...Object.values(buckets),1);
+  const colors = ['var(--success)','var(--accent3)','var(--accent2)','var(--accent)'];
+  document.getElementById('rating-dist').innerHTML = Object.entries(buckets).map(([k,v],i)=>`
+    <div style="margin-bottom:.8rem">
+      <div style="display:flex;justify-content:space-between;font-size:.72rem;margin-bottom:.3rem">
+        <span>★ ${k}</span><span style="color:var(--muted)">${v} novel${v!==1?'s':''}</span>
+      </div>
+      <div class="prog-bar"><div class="prog-fill" style="width:${Math.round((v/maxB)*100)}%;background:${colors[i]}"></div></div>
+    </div>
+  `).join('');
+
+  const gc = {};
+  novels.forEach(n=>{ if(n.genre) gc[n.genre]=(gc[n.genre]||0)+1; });
+  const maxG = Math.max(...Object.values(gc),1);
+  document.getElementById('genre-dist').innerHTML = Object.entries(gc).sort((a,b)=>b[1]-a[1]).map(([g,c],i)=>`
+    <div style="margin-bottom:.8rem">
+      <div style="display:flex;justify-content:space-between;font-size:.72rem;margin-bottom:.3rem">
+        <span>${g}</span><span style="color:var(--muted)">${c}</span>
+      </div>
+      <div class="prog-bar"><div class="prog-fill" style="width:${Math.round((c/maxG)*100)}%;background:${colors[i%colors.length]}"></div></div>
+    </div>
+  `).join('');
+}
+
+// ═══════════════════════════════════════
+// NOVELS TABLE
+// ═══════════════════════════════════════
+let filteredNovels = [];
+
+function filterNovels(q) {
+  novelPage = 1;
+  const genre = document.getElementById('genre-filter').value;
+  filteredNovels = novels.filter(n=>{
+    const matchQ = !q || n.title.toLowerCase().includes(q.toLowerCase());
+    const matchG = !genre || n.genre === genre;
+    return matchQ && matchG;
+  });
+  renderNovelsTable();
+}
+
+function renderNovelsTable() {
+  filteredNovels = filteredNovels.length || !document.getElementById('novel-filter').value ? filteredNovels : novels;
+  if (!filteredNovels.length && novels.length) filteredNovels = [...novels];
+
+  const gf = document.getElementById('genre-filter');
+  const genres = [...new Set(novels.map(n=>n.genre).filter(Boolean))];
+  const gfCurrent = gf.value;
+  gf.innerHTML = '<option value="">All Genres</option>' + genres.map(g=>`<option value="${g}" ${g===gfCurrent?'selected':''}>${g}</option>`).join('');
+
+  const start = (novelPage-1)*PER_PAGE;
+  const page = filteredNovels.slice(start, start+PER_PAGE);
+  document.getElementById('novel-count-text').textContent = `${filteredNovels.length} novel${filteredNovels.length!==1?'s':''}`;
+
+  const tbody = document.getElementById('novel-table-body');
+  if (!page.length) {
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">📚</div><p>No novels found</p></div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = page.map(n=>`
+    <tr>
+      <td>
+        <div class="cover-thumb" style="${n.color?'background:'+n.color:'background:var(--surface2)'}">
+          ${n.coverUrl ? `<img src="${n.coverUrl}" style="width:100%;height:100%;object-fit:cover">` : n.kanji}
+        </div>
+      </td>
+      <td style="font-weight:500;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${n.title}</td>
+      <td><span class="genre-tag">${n.genre||'—'}</span></td>
+      <td>
+        <span style="font-family:'Space Mono',monospace;font-size:.72rem">${(n.chapterCount||0).toLocaleString()}</span>
+      </td>
+      <td><span class="stars">★</span> ${n.rating||'—'}</td>
+      <td>${n.badge ? `<span class="badge badge-${n.badge}">${n.badge}</span>` : '<span style="color:var(--muted);font-size:.7rem">—</span>'}</td>
+      <td>
+        <div class="action-row">
+          <button class="btn btn-ghost btn-sm" onclick="openNovelDetail(${n.id})">View</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteNovel(${n.id},'${n.title.replace(/'/g,"\\'")}')">Del</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+
+  renderPagination('novel', filteredNovels.length, novelPage, p=>{novelPage=p;renderNovelsTable();});
+}
+
+function openNovelDetail(id) {
+  const n = novels.find(x=>x.id===id);
+  if (!n) return;
+  document.getElementById('nm-title').textContent = n.title;
+  
+  // Sort chapters based on Django's structure
+  const chList = (n.chapters && Array.isArray(n.chapters)) 
+    ? n.chapters.sort((a,b)=>a.chapter_number - b.chapter_number) 
+    : [];
+
+  document.getElementById('nm-body').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.2rem">
+      <div><div class="form-label">Genre</div><div style="margin-top:.3rem">${n.genre||'—'}</div></div>
+      <div><div class="form-label">Rating</div><div style="margin-top:.3rem">★ ${n.rating||'—'}</div></div>
+      <div><div class="form-label">Badge</div><div style="margin-top:.3rem">${n.badge?`<span class="badge badge-${n.badge}">${n.badge}</span>`:'None'}</div></div>
+      <div><div class="form-label">Chapters</div><div style="margin-top:.3rem">${(n.chapterCount||0).toLocaleString()}</div></div>
+      <div><div class="form-label">Kanji</div><div style="margin-top:.3rem;font-size:1.2rem">${n.kanji||'—'}</div></div>
+      <div><div class="form-label">ID</div><div style="margin-top:.3rem;font-family:'Space Mono';font-size:.7rem">#${n.id}</div></div>
+    </div>
+    ${chList.length ? `
+      <div class="form-label" style="margin-bottom:.5rem">Chapter List (${chList.length} available)</div>
+      <div style="max-height:220px;overflow-y:auto;">
+        ${chList.map((ch)=>{
+          const text = ch.content || '';
+          const words = text.split(/\s+/).filter(Boolean).length;
+          return `
+            <div class="ch-list-item">
+              <div class="ch-number">Ch.${ch.chapter_number}</div>
+              <div class="top-info">
+                <div style="font-size:.78rem;font-weight:500">Chapter ${ch.chapter_number}</div>
+                <div class="ch-words">~${words.toLocaleString()} words</div>
+              </div>
+              <button class="btn btn-ghost btn-sm" onclick="previewChapter('${n.title}',${ch.chapter_number},'${encodeURIComponent(text.substring(0,500))}')">Preview</button>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    ` : '<div style="color:var(--muted);font-size:.78rem">No chapter data available.</div>'}
+  `;
+  openModal('novel-modal');
+}
+
+function previewChapter(title, num, encodedText) {
+  document.getElementById('chm-title').textContent = `${title} — Chapter ${num}`;
+  const text = decodeURIComponent(encodedText);
+  document.getElementById('chm-body').innerHTML = `
+    <div style="font-size:.8rem;line-height:1.9;color:var(--text);font-family:'DM Sans',sans-serif;max-height:400px;overflow-y:auto">
+      ${text}${text.length >= 500 ? '<br><br><span style="color:var(--muted)">[Preview truncated — full content in database]</span>' : ''}
+    </div>
+  `;
+  openModal('ch-modal');
+}
+
+async function deleteNovel(id, title) {
+  if (!confirm(`Delete "${title}"? This cannot be undone.`)) return;
+  
+  try {
+    const r = await fetch(`${apiBase}/admin/novels/${id}/delete/`, { 
+      method:'DELETE', 
+      headers:{'X-CSRFToken': getCookie('csrftoken')} 
+    });
+    if(r.ok) { 
+      novels = novels.filter(n=>n.id!==id); 
+      filterNovels(document.getElementById('novel-filter').value); 
+      toast(`"${title}" deleted`,'success'); 
+      renderDashboard(); // Update stats
+    } else {
+      toast('Delete request failed','error');
+    }
+  } catch(e) {
+    toast('API error: Could not connect to delete route','error');
+  }
+}
+
+// ═══════════════════════════════════════
+// CHAPTERS TABLE
+// ═══════════════════════════════════════
+let filteredChapters = [];
+
+function filterChapters(q) {
+  chPage = 1;
+  const novelSel = document.getElementById('ch-novel-filter').value;
+  filteredChapters = allChapters.filter(c=>{
+    const matchQ = !q || c.novel.toLowerCase().includes(q.toLowerCase());
+    const matchN = !novelSel || c.novel === novelSel;
+    return matchQ && matchN;
+  });
+  renderChaptersTable();
+}
+
+function renderChaptersTable() {
+  if (!filteredChapters.length && allChapters.length) filteredChapters = [...allChapters];
+
+  const nf = document.getElementById('ch-novel-filter');
+  const novelNames = [...new Set(allChapters.map(c=>c.novel))];
+  const nfCurrent = nf.value;
+  nf.innerHTML = '<option value="">All Novels</option>' + novelNames.map(n=>`<option value="${n}" ${n===nfCurrent?'selected':''}>${n}</option>`).join('');
+
+  const start = (chPage-1)*PER_PAGE;
+  const page = filteredChapters.slice(start, start+PER_PAGE);
+  document.getElementById('ch-count-text').textContent = `${filteredChapters.length} chapter${filteredChapters.length!==1?'s':''}`;
+
+  const tbody = document.getElementById('ch-table-body');
+  if (!page.length) {
+    tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="empty-icon">📄</div><p>No chapters found</p></div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = page.map((c,i)=>{
+    const words = c.content ? c.content.split(/\s+/).filter(Boolean).length : 0;
+    return `
+      <tr>
+        <td style="font-family:'Space Mono';font-size:.65rem;color:var(--muted)">${start+i+1}</td>
+        <td style="font-weight:500;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.novel}</td>
+        <td><span style="font-family:'Bebas Neue';font-size:.95rem;color:var(--accent)">Ch.${c.chNum}</span></td>
+        <td style="font-family:'Space Mono';font-size:.7rem">~${words>0?words.toLocaleString():'?'}</td>
+        <td>
+          <div class="action-row">
+            <button class="btn btn-ghost btn-sm" onclick="previewChapter('${c.novel}',${c.chNum},'${encodeURIComponent(c.content.substring(0,500))}')">Preview</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  renderPagination('ch', filteredChapters.length, chPage, p=>{chPage=p;renderChaptersTable();});
+}
+
+// ═══════════════════════════════════════
+// USERS TABLE
+// ═══════════════════════════════════════
+const avatarColors = ['#ff3c5f','#a855f7','#06b6d4','#22c55e','#f59e0b','#ec4899'];
+
+function filterUsers(q) {
+  const filtered = users.filter(u=> !q || u.username?.toLowerCase().includes(q.toLowerCase()) || u.email?.toLowerCase().includes(q.toLowerCase()));
+  renderUsersTable(filtered);
+}
+
+function renderUsersTable(list) {
+  list = list || users;
+  document.getElementById('user-count-text').textContent = `${list.length} user${list.length!==1?'s':''}`;
+  const tbody = document.getElementById('user-table-body');
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">👥</div><p>No users found</p></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list.map((u,i)=>`
+    <tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:.7rem">
+          <div class="u-avatar" style="background:${avatarColors[i%avatarColors.length]}">${(u.username||'?')[0].toUpperCase()}</div>
+        </div>
+      </td>
+      <td style="font-weight:500">${u.username||'—'}</td>
+      <td style="font-size:.75rem;color:var(--muted)">${u.email||'—'}</td>
+      <td style="font-family:'Space Mono';font-size:.65rem;color:var(--muted)">${u.date_joined?u.date_joined.substring(0,10):'—'}</td>
+      <td><span class="status-pill ${u.is_active?'status-ongoing':'status-hiatus'}">${u.is_active?'Active':'Inactive'}</span></td>
+      <td>
+        <div class="action-row">
+          <button class="btn btn-ghost btn-sm" onclick="openEditUserModal(${u.id}, '${(u.username||'').replace(/'/g, "\\'")}', '${(u.email||'').replace(/'/g, "\\'")}')">Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="toggleBanUser(${u.id}, '${(u.username||'').replace(/'/g, "\\'")}', ${u.is_active})">${u.is_active ? 'Ban' : 'Unban'}</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+// ═══════════════════════════════════════
+// LIBRARIES TABLE
+// ═══════════════════════════════════════
+function renderLibrariesTable() {
+  const tbody = document.getElementById('lib-table-body');
+  if (!libraries.length) {
+    tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="empty-icon">🔖</div><p>No library data</p></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = libraries.map(l=> {
+    // Handling possible serialization structures (e.g. if l.user is nested or just string)
+    const username = (typeof l.user === 'object' && l.user !== null) ? (l.user.username || l.user.id) : l.user;
+    
+    return `
+      <tr>
+        <td style="font-weight:500">${username}</td>
+        <td><span style="font-family:'Space Mono';font-size:.72rem">${Array.isArray(l.bookmarks)?l.bookmarks.length:Object.keys(l.bookmarks||{}).length}</span></td>
+        <td><span style="font-family:'Space Mono';font-size:.72rem">${Array.isArray(l.read_history)?l.read_history.length:Object.keys(l.read_history||{}).length}</span></td>
+        <td><span style="font-family:'Space Mono';font-size:.72rem">${Object.keys(l.progress||{}).length}</span></td>
+        <td><button class="btn btn-ghost btn-sm" onclick="viewLibraryDetail('${username}')">Inspect</button></td>
+      </tr>
+    `
+  }).join('');
+}
+
+function viewLibraryDetail(username) {
+  // Find library by user string or user object username
+  const l = libraries.find(x=> x.user === username || (typeof x.user === 'object' && x.user.username === username));
+  if (!l) return;
+  document.getElementById('nm-title').textContent = `${username}'s Library`;
+  document.getElementById('nm-body').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+      <div>
+        <div class="form-label" style="margin-bottom:.5rem">Bookmarks (${Array.isArray(l.bookmarks)?l.bookmarks.length:0})</div>
+        <div style="font-family:'Space Mono';font-size:.7rem;color:var(--muted);word-break:break-all">${JSON.stringify(l.bookmarks||[])}</div>
+      </div>
+      <div>
+        <div class="form-label" style="margin-bottom:.5rem">Read History (${Array.isArray(l.read_history)?l.read_history.length:0})</div>
+        <div style="font-family:'Space Mono';font-size:.7rem;color:var(--muted);word-break:break-all">${JSON.stringify(l.read_history||[])}</div>
+      </div>
+      <div style="grid-column:span 2">
+        <div class="form-label" style="margin-bottom:.5rem">Progress</div>
+        <div style="font-family:'Space Mono';font-size:.7rem;color:var(--muted);word-break:break-all">${JSON.stringify(l.progress||{})}</div>
+      </div>
+    </div>
+  `;
+  openModal('novel-modal');
+}
+
+// ═══════════════════════════════════════
+// ADD NOVEL / CHAPTER FORMS
+// ═══════════════════════════════════════
+function populateNovelSelects() {
+  const sel = document.getElementById('ch-novel-sel');
+  sel.innerHTML = '<option value="">Select Novel</option>' + novels.map(n=>`<option value="${n.id}">${n.title}</option>`).join('');
+}
+
+function clearForm() {
+  ['new-title','new-genre','new-rating','new-badge','new-kanji','new-cover'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.value = el.tagName==='SELECT'?'':el.defaultValue||'';
+  });
+}
+
+async function submitNovel() {
+  const title = document.getElementById('new-title').value.trim();
+  const genre = document.getElementById('new-genre').value;
+  if (!title || !genre) { toast('Title and Genre are required','error'); return; }
+
+  // ✨ Switch to FormData to support Image File uploads! ✨
+  const formData = new FormData();
+  formData.append('title', title);
+  formData.append('genre', genre);
+  formData.append('rating', document.getElementById('new-rating').value || '0.0');
+  formData.append('badge', document.getElementById('new-badge').value || '');
+  formData.append('kanji', document.getElementById('new-kanji').value || '');
+  formData.append('color', document.getElementById('new-color').value || 'linear-gradient(135deg,#1a0533,#3d0a6b,#ff3c5f)');
+
+  // Grab the actual image file from the computer!
+  const coverFile = document.getElementById('new-cover').files[0];
+  if (coverFile) {
+    formData.append('cover_image', coverFile);
+  }
+
+  try {
+    const r = await fetch(`${apiBase}/admin/novels/create/`, {
+      method: 'POST',
+      headers: {
+        // IMPORTANT: Do NOT put 'Content-Type': 'application/json' here anymore!
+        // The browser automatically sets the correct type for file uploads.
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      body: formData
+    });
+    
+    if(r.ok) {
+      toast(`"${title}" created!`, 'success');
+      clearForm();
+      await fetchAll(); 
+      showView('novels', document.querySelector('.nav-item:nth-child(3)'));
+    } else {
+      const errData = await r.json();
+      toast('Server Error: ' + (errData.error || 'Failed to save'), 'error');
+    }
+  } catch(e) {
+    toast('API error: Check if server is running', 'error');
+  }
+}
+
+async function submitChapter() {
+  const novelId = document.getElementById('ch-novel-sel').value;
+  const chNum = parseInt(document.getElementById('ch-num').value);
+  const content = document.getElementById('ch-content').value.trim();
+  if (!novelId || !chNum || !content) { toast('All fields required','error'); return; }
+
+  // Map to exactly match Django Chapter model (ForeignKey 'novel' expects novel_id)
+  try {
+    const r = await fetch(`${apiBase}/admin/chapters/create/`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-CSRFToken':getCookie('csrftoken')},
+      body:JSON.stringify({
+        novel: novelId,  // Django ForeignKey match
+        chapter_number: chNum, 
+        content: content
+      })
+    });
+    
+    if(r.ok){ 
+      toast(`Chapter ${chNum} added!`,'success'); 
+      document.getElementById('ch-content').value=''; 
+      document.getElementById('ch-num').value=''; 
+      fetchAll(); // Sync with new chapters
+    } else {
+      toast('Failed to add chapter. Check if number exists.','error');
+    }
+  } catch(e) {
+    toast('API error: Could not connect to backend','error');
+  }
+}
+
+// ═══════════════════════════════════════
+// PAGINATION
+// ═══════════════════════════════════════
+function renderPagination(key, total, current, cb) {
+  const pages = Math.ceil(total/PER_PAGE);
+  const el = document.getElementById(`${key}-pagination`);
+  if (pages<=1) { el.innerHTML=''; return; }
+  let html = '';
+  if(current>1) html+=`<div class="page-btn" onclick="(${cb})(${current-1})">‹</div>`;
+  for(let i=Math.max(1,current-2);i<=Math.min(pages,current+2);i++){
+    html+=`<div class="page-btn ${i===current?'active':''}" onclick="(${cb})(${i})">${i}</div>`;
+  }
+  if(current<pages) html+=`<div class="page-btn" onclick="(${cb})(${current+1})">›</div>`;
+  el.innerHTML=html;
+}
+
+// ═══════════════════════════════════════
+// TOP SEARCH
+// ═══════════════════════════════════════
+function topSearch(q) {
+  if (!q) return;
+  const match = novels.find(n=>n.title.toLowerCase().includes(q.toLowerCase()));
+  if (match) {
+    showView('novels', document.querySelectorAll('.nav-item')[3]);
+    document.getElementById('novel-filter').value = q;
+    filterNovels(q);
+  }
+}
+
+// ═══════════════════════════════════════
+// MODALS
+// ═══════════════════════════════════════
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-backdrop').forEach(b=>{
+  b.addEventListener('click', e=>{ if(e.target===b) b.classList.remove('open'); });
+});
+
+// ═══════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════
+function toast(msg, type='') {
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.innerHTML = `${type==='success'?'✓':type==='error'?'✕':'◈'} ${msg}`;
+  c.appendChild(t);
+  setTimeout(()=>t.remove(), 3500);
+}
+
+// ═══════════════════════════════════════
+// SETTINGS
+// ═══════════════════════════════════════
+function saveSettings() {
+  apiBase = document.getElementById('api-base').value.trim() || '/api';
+  localStorage.setItem('inkverse-api-base', apiBase);
+  toast('Settings saved. Refreshing...','success');
+  fetchAll();
+}
+
+async function refreshData() {
+  toast('Refreshing data...','');
+  await fetchAll();
+}
+
+// ═══════════════════════════════════════
+// LOGOUT
+// ═══════════════════════════════════════
+async function handleLogout() {
+  try {
+    await fetch('/api/logout/', {method:'POST', headers:{'X-CSRFToken':getCookie('csrftoken')}});
+  } catch(e) {}
+  window.location.href = '/';
+}
+
+// ═══════════════════════════════════════
+// CSRF HELPER
+// ═══════════════════════════════════════
+function getCookie(name) {
+  const v = document.cookie.split(';').find(c=>c.trim().startsWith(name+'='));
+  return v ? v.trim().split('=')[1] : '';
+}
+
+// ═══════════════════════════════════════
+// USER MANAGEMENT
+// ═══════════════════════════════════════
+function openEditUserModal(userId, username, email) {
+  document.getElementById('um-user-id').value = userId;
+  document.getElementById('um-username').value = username;
+  document.getElementById('um-email').value = email;
+  document.getElementById('um-title').textContent = 'Edit User: ' + username;
+  openModal('user-modal');
+}
+
+async function saveUserEdit() {
+  const userId = document.getElementById('um-user-id').value;
+  const username = document.getElementById('um-username').value.trim();
+  const email = document.getElementById('um-email').value.trim();
+  
+  if (!username || !email) {
+    toast('Username and Email are required', 'error');
+    return;
+  }
+  
+  try {
+    const r = await fetch(`${apiBase}/admin/users/${userId}/update/`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      body: JSON.stringify({ username, email })
+    });
+    
+    if (r.ok) {
+      toast('User updated successfully', 'success');
+      closeModal('user-modal');
+      await fetchUsers();
+      renderUsersTable();
+    } else {
+      const errData = await r.json();
+      toast('Error: ' + (errData.error || 'Failed to update user'), 'error');
+    }
+  } catch(e) {
+    toast('API error: Could not connect to server', 'error');
+  }
+}
+
+async function toggleBanUser(userId, username, currentStatus) {
+  const newStatus = !currentStatus;
+  const action = newStatus ? 'unban' : 'ban';
+  
+  if (!confirm(`Are you sure you want to ${action} "${username}"?`)) return;
+  
+  try {
+    const r = await fetch(`${apiBase}/admin/users/${userId}/toggle-ban/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      body: JSON.stringify({ is_active: newStatus })
+    });
+    
+    if (r.ok) {
+      toast(`User ${action}ned successfully`, 'success');
+      await fetchUsers();
+      renderUsersTable();
+    } else {
+      const errData = await r.json();
+      toast('Error: ' + (errData.error || 'Failed to update user'), 'error');
+    }
+  } catch(e) {
+    toast('API error: Could not connect to server', 'error');
+  }
+}
+
+// ═══════════════════════════════════════
+// FEATURED MANAGEMENT
+// ═══════════════════════════════════════
+let featuredData = { featured: [], all_novels: [] };
+
+async function fetchFeaturedData() {
+  try {
+    const r = await fetch(`${apiBase}/admin/featured/?t=${new Date().getTime()}`, { cache: 'no-store' });
+    if (r.ok) {
+      featuredData = await r.json();
+      renderFeaturedManagement();
+    } else {
+      console.error('Featured fetch failed:', r.status, r.statusText);
+      document.getElementById('featured-current').innerHTML = '<div class="empty-state"><div class="empty-icon">❌</div><p>Failed to load featured data</p></div>';
+      document.getElementById('featured-all-list').innerHTML = '<div class="empty-state"><div class="empty-icon">❌</div><p>Failed to load novels</p></div>';
+    }
+  } catch(e) {
+    console.error('Featured fetch error:', e);
+    document.getElementById('featured-current').innerHTML = '<div class="empty-state"><div class="empty-icon">❌</div><p>Network error</p></div>';
+    document.getElementById('featured-all-list').innerHTML = '<div class="empty-state"><div class="empty-icon">❌</div><p>Network error</p></div>';
+  }
+}
+
+function renderFeaturedManagement() {
+  const filter = (document.getElementById('featured-filter') || {}).value || '';
+  const featured = featuredData.featured || [];
+  const allNovels = (featuredData.all_novels || []).filter(n => 
+    !filter || n.title.toLowerCase().includes(filter.toLowerCase())
+  );
+  
+  // Update count badge
+  document.getElementById('featured-count-badge').textContent = `${featured.length}/2`;
+  document.getElementById('featured-count').textContent = featured.length;
+  
+  // Render currently featured
+  const currentEl = document.getElementById('featured-current');
+  if (featured.length === 0) {
+    currentEl.innerHTML = '<div class="empty-state"><div class="empty-icon">★</div><p>No novels currently featured. Select novels below to feature them on the homepage.</p></div>';
+  } else {
+    currentEl.innerHTML = featured.map(n => `
+      <div class="top-item">
+        <div class="top-cover" style="${n.color?'background:'+n.color:''}">
+          ${n.coverUrl ? `<img src="${n.coverUrl}" style="width:100%;height:100%;object-fit:cover">` : n.kanji}
+        </div>
+        <div class="top-info">
+          <div class="top-title">${n.title}</div>
+          <div class="top-meta">${n.genre} · ★${n.rating} · Ch.${n.ch}</div>
+        </div>
+        <button class="btn btn-danger btn-sm" onclick="toggleFeatured(${n.id}, false)">Remove</button>
+      </div>
+    `).join('');
+  }
+  
+  // Render all novels list
+  const allEl = document.getElementById('featured-all-list');
+  if (allNovels.length === 0) {
+    allEl.innerHTML = '<div class="empty-state"><div class="empty-icon">📚</div><p>No novels found.</p></div>';
+  } else {
+    allEl.innerHTML = allNovels.map(n => {
+      const isFeatured = featured.some(f => f.id === n.id);
+      return `
+        <div class="top-item" style="opacity:${isFeatured ? '0.5' : '1'}">
+          <div class="top-cover" style="${n.color?'background:'+n.color:''}">
+            ${n.coverUrl ? `<img src="${n.coverUrl}" style="width:100%;height:100%;object-fit:cover">` : n.kanji}
+          </div>
+          <div class="top-info">
+            <div class="top-title">${n.title} ${isFeatured ? '<span class="badge badge-new" style="margin-left:.4rem">Featured</span>' : ''}</div>
+            <div class="top-meta">${n.genre} · ★${n.rating} · Ch.${n.ch}</div>
+          </div>
+          <button class="btn ${isFeatured ? 'btn-ghost' : 'btn-primary'} btn-sm" onclick="toggleFeatured(${n.id}, ${!isFeatured})">
+            ${isFeatured ? 'Remove' : 'Feature'}
+          </button>
+        </div>
+      `;
+    }).join('');
+  }
+}
+
+async function toggleFeatured(novelId, isFeatured) {
+  try {
+    // Remove the +10000 offset to get the actual database ID
+    const actualId = novelId - 10000;
+    
+    const r = await fetch(`${apiBase}/admin/novels/${actualId}/toggle-featured/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      body: JSON.stringify({ is_featured: isFeatured })
+    });
+    
+    if (r.ok) {
+      toast(isFeatured ? 'Novel featured!' : 'Novel unfeatured', 'success');
+      await fetchFeaturedData();
+    } else {
+      const errData = await r.json();
+      toast(errData.error || 'Failed to update featured status', 'error');
+    }
+  } catch(e) {
+    toast('API error: Could not connect to server', 'error');
+  }
+}
+
+// ═══════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════
+document.getElementById('api-base').value = apiBase;
+filteredNovels = [];
+filteredChapters = [];
+fetchAll();
+
+// Override showView to handle featured view
+const originalShowView = showView;
+showView = function(id, navEl) {
+  originalShowView(id, navEl);
+  if (id === 'featured') {
+    fetchFeaturedData();
+  }
+};
+</script>
+</body>
+</html>
