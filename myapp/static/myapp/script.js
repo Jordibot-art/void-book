@@ -35,7 +35,7 @@ async function save() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
       // ✨ ADD savedWords TO THIS LINE ✨
-      body: JSON.stringify({ bookmarks, readHistory, progress, savedWords })
+      body: JSON.stringify({ bookmarks, readHistory, progress, saved_words: savedWords })
     });
   } catch (error) { console.error("Failed to save progress", error); }
 }
@@ -157,7 +157,7 @@ async function handleSignIn(e) {
          readHistory = data.library.readHistory || [];
          progress = data.library.progress || {};
          // ✨ ADD THIS LINE to both SignIn and SignUp functions ✨
-         savedWords = data.library.saved_words || {}; 
+         savedWords = data.library.saved_words || data.library.savedWords || {};
       }
       closeModal('auth-modal');
       renderAuthArea();
@@ -209,6 +209,7 @@ async function handleSignUp(e) {
          bookmarks = data.library.bookmarks || [];
          readHistory = data.library.readHistory || [];
          progress = data.library.progress || {};
+         savedWords = data.library.saved_words || data.library.savedWords || {};
       }
       
       closeModal('auth-modal');
@@ -233,7 +234,7 @@ async function signOut() {
     await fetch('/api/logout/', { method: 'POST', headers: { 'X-CSRFToken': csrftoken } });
   } catch(e) {}
 
-  currentUser = null; bookmarks = []; readHistory = []; progress = {};
+  currentUser = null; bookmarks = []; readHistory = []; progress = {}; savedWords = {};
   renderAuthArea(); renderGrid(); updateBadge(); updateQuickResume();
   toast('Signed out. See you next time!', 'info', '↩');
 }

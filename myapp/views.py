@@ -67,7 +67,8 @@ def api_login(request):
                 'library': {
                     'bookmarks': library.bookmarks,
                     'readHistory': library.read_history,
-                    'progress': library.progress
+                    'progress': library.progress,
+                    'saved_words': library.saved_words
                 }
             })
         else:
@@ -94,7 +95,10 @@ def api_save_progress(request):
         library.progress = data.get('progress', library.progress)
         
         # ✨ ADD THIS LINE: Save the new vocabulary list back to the database
-        library.saved_words = data.get('saved_words', library.saved_words)
+        library.saved_words = data.get(
+            'saved_words',
+            data.get('savedWords', library.saved_words)
+        )
         
         library.save()
         return JsonResponse({'message': 'Progress saved successfully'})
