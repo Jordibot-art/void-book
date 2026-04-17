@@ -6,9 +6,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VOID BOOK</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300;1,9..40,400;1,9..40,500;1,9..40,600&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'myapp/style.css' %}?v=3">
+<link rel="stylesheet" href="{% static 'myapp/style.css' %}?v=4">
 </head>
 <body>
+
+<div id="toasts" class="toast-container" aria-live="polite"></div>
 
 <div id="vocab-tooltip" onmousedown="event.preventDefault(); event.stopPropagation();" onclick="saveHighlightedWord();" style="display:none; position:fixed; background:var(--accent); color:white; padding:6px 12px; border-radius:8px; cursor:pointer; font-size:0.75rem; font-weight:bold; z-index:2147483647; box-shadow: 0 4px 12px rgba(0,0,0,0.8); pointer-events:auto; transition: opacity 0.2s;">
     📌 Save Word
@@ -223,6 +225,6 @@
   <p>© 2025 INKVERSE · All rights reserved</p>
 </footer>
 
-<script src="{% static 'myapp/script.js' %}?v=9"></script>
+<script src="{% static 'myapp/script.js' %}?v=10"></script>
 </body>
 </html>

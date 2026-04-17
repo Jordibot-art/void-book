@@ -60,6 +60,7 @@ function setNav(el) {
 // ══════════════════════════════════════════
 function toast(msg, type='info', icon='ℹ') {
   const c = document.getElementById('toasts');
+  if (!c) return;
   const t = document.createElement('div');
   t.className = `toast ${type}`;
   t.innerHTML = `<span class="t-icon">${icon}</span>${msg}`;
@@ -438,10 +439,10 @@ function toggleBookmark(id, e) {
   const idx = bookmarks.findIndex(b=>b.id===id);
   if (idx===-1) {
     bookmarks.push({id:m.id,title:m.title,genre:m.genre,ch:m.ch,rating:m.rating,color:m.color,kanji:m.kanji,coverUrl:m.coverUrl});
-    toast(`"${m.title}" saved to library`, 'success', '★');
+    toast(`Saved: "${m.title}" is now in your library.`, 'success', '★');
   } else {
     bookmarks.splice(idx,1);
-    toast(`"${m.title}" removed`, 'info', '✕');
+    toast(`Removed "${m.title}" from your library.`, 'info', '✕');
   }
   save(); renderGrid(); updateBadge();
 }
@@ -512,8 +513,14 @@ function renderLibrary() {
       const vocab = savedWords[h.id] || [];
       let vocabHtml = '';
       if (vocab.length > 0) {
-          const badges = vocab.map(w => `<span style="background:rgba(255,60,95,0.15); color:var(--accent); padding:2px 8px; border-radius:4px; font-size:0.65rem; margin-right:6px; display:inline-block; margin-top:6px; border: 1px solid rgba(255,60,95,0.3);">${w}</span>`).join('');
-          vocabHtml = `<div style="margin-top:10px; border-top:1px solid rgba(255,255,255,0.05); padding-top:8px; width:100%;"><span style="font-size:0.65rem; color:var(--muted); display:block; margin-bottom:4px; text-transform:uppercase; letter-spacing:1px;">Saved Vocabulary:</span>${badges}</div>`;
+          const badges = vocab.map(w => {
+            const enc = encodeURIComponent(w);
+            return `<span class="vocab-badge-row" style="display:inline-flex;align-items:center;gap:4px;margin:6px 8px 0 0;">
+              <span style="background:rgba(255,60,95,0.15); color:var(--accent); padding:2px 8px; border-radius:4px; font-size:0.65rem; border: 1px solid rgba(255,60,95,0.3);">${String(w).replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}</span>
+              <button type="button" class="vocab-remove-btn" data-novel-id="${h.id}" data-w="${enc}" onclick="event.stopPropagation();removeSavedWordFromDataset(this)" title="Remove word">✕</button>
+            </span>`;
+          }).join('');
+          vocabHtml = `<div style="margin-top:10px; border-top:1px solid rgba(255,255,255,0.05); padding-top:8px; width:100%;"><span style="font-size:0.65rem; color:var(--muted); display:block; margin-bottom:4px; text-transform:uppercase; letter-spacing:1px;">Saved Vocabulary:</span><div style="display:flex;flex-wrap:wrap;align-items:center;">${badges}</div></div>`;
       }
 
       return `
@@ -880,10 +887,10 @@ function saveHighlightedWord() {
     if (!savedWords[readerManga.id].includes(currentHighlightedWord)) {
         savedWords[readerManga.id].push(currentHighlightedWord);
         save(); // Send to Django!
-        toast(`"${currentHighlightedWord}" saved to Vocabulary!`, 'success', '📌');
+        toast(`Word saved: "${currentHighlightedWord}" — find it in My Library → History.`, 'success', '📌');
         renderChapter(); // Instantly apply the pink highlight
     } else {
-        toast(`"${currentHighlightedWord}" is already in your list.`, 'info');
+        toast(`"${currentHighlightedWord}" is already in your vocabulary list.`, 'info');
     }
 
     // ✨ SAFEGUARD 2: Wipe the browser's native text selection clean
@@ -897,57 +904,35 @@ function saveHighlightedWord() {
     setTimeout(() => { isSaving = false; }, 300);
 }
 
-// Hide tooltip if they click away
-document.addEventListener('mousedown', function(e) {
-    const tooltip = document.getElementById('vocab-tooltip');
-    if (tooltip && !e.target.closest('#vocab-tooltip')) {
-        tooltip.style.display = 'none';
-    }
-});
-
-// 2. Save the word when the tooltip is clicked
-function saveHighlightedWord() {
-    // 1. ✨ HIDE IMMEDIATELY: Force the tooltip to disappear first so it never gets stuck!
-    document.getElementById('vocab-tooltip').style.display = 'none';
-
-    // 2. SECURITY CHECK: Ensure we actually have a word and a novel open
-    if (!readerManga || !currentHighlightedWord) {
-        console.error("DEBUG: Save failed. Missing novel data or highlighted word.");
+function removeSavedWordFromDataset(btn) {
+    if (!currentUser) {
+        toast('Please sign in to manage vocabulary.', 'warn', '🔒');
+        openModal('auth-modal');
         return;
     }
-
-    // 3. Initialize the array for this novel if it doesn't exist yet
-    if (!savedWords[readerManga.id]) {
-        savedWords[readerManga.id] = [];
+    const novelId = parseInt(btn.getAttribute('data-novel-id'), 10);
+    let word = '';
+    try {
+        word = decodeURIComponent(btn.getAttribute('data-w') || '');
+    } catch (err) {
+        return;
     }
-
-    // 4. Check for duplicates and save
-    if (!savedWords[readerManga.id].includes(currentHighlightedWord)) {
-        savedWords[readerManga.id].push(currentHighlightedWord);
-        
-        save(); // Send to Django database!
-        
-        toast(`"${currentHighlightedWord}" saved to Vocabulary!`, 'success', '📌');
-        
-        // ✨ UPDATE UI: Re-render the chapter so the pink highlight appears instantly!
-        renderChapter();
-        
-    } else {
-        toast(`"${currentHighlightedWord}" is already in your list.`, 'info');
-    }
-
-    // 5. Clear the browser's native blue text selection
-    window.getSelection().removeAllRanges();
+    removeSavedWord(novelId, word);
 }
 
-// ✨ FIXED: Hide tooltip safely without breaking the click event
-document.addEventListener('mousedown', function(e) {
-    const tooltip = document.getElementById('vocab-tooltip');
-    // Using .closest() ensures clicking the text INSIDE the tooltip doesn't break it!
-    if (tooltip && !e.target.closest('#vocab-tooltip')) {
-        tooltip.style.display = 'none';
-    }
-});
+function removeSavedWord(novelId, word) {
+    const list = savedWords[novelId];
+    if (!list || !word) return;
+    const idx = list.indexOf(word);
+    if (idx === -1) return;
+    list.splice(idx, 1);
+    if (list.length === 0) delete savedWords[novelId];
+    save();
+    const panel = document.getElementById('library-panel');
+    if (panel && panel.classList.contains('open')) renderLibrary();
+    if (readerManga && readerManga.id === novelId) renderChapter();
+    toast(`Removed "${word}" from saved vocabulary.`, 'info', '✕');
+}
 
 // Start the system!
 initializeSystem();
