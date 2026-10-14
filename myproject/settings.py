@@ -134,7 +134,7 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'myapp/static')]
 STATIC_ROOT = BASE_DIR / 'staticfiles_build' / 'static'
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFileStorage'
 
 LOGIN_REDIRECT_URL = 'home'
 LOGOUT_REDIRECT_URL = 'home'
@@ -143,11 +143,3 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-import os
-
-# The directory where collectstatic will put all your CSS/JS
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-
-# Add this line to tell WhiteNoise to compress and cache your files
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
