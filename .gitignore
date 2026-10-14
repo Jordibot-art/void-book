@@ -7,3 +7,4 @@ covers/
 .env
 staticfiles_build/
 staticfiles/
+datadump.json
