@@ -4,3 +4,6 @@ db.sqlite3
 media/
 env/
 covers/
+.env
+staticfiles_build/
+staticfiles/
