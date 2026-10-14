@@ -20,13 +20,11 @@ def home(request):
     )
     return render(request, 'myapp/index.html', {'hero_novels': hero_novels})
 
-# 1.5 CUSTOM ADMIN DASHBOARD
 def custom_admin(request):
     if not request.user.is_authenticated or not request.user.is_staff:
         return render(request, 'myapp/index.html')
     return render(request, 'myapp/custom_admin.html')
 
-# 2. REGISTER API
 def api_register(request):
     if request.method == 'POST':
         data = json.loads(request.body)
