@@ -13,11 +13,14 @@ from django.contrib.admin.views.decorators import staff_member_required
 # 1. MAIN PAGE RENDER
 @ensure_csrf_cookie
 def home(request):
-    hero_novels = (
-        Novel.objects.filter(hero_slot__isnull=False)
-        .annotate(latest_chapter=Max('chapters__chapter_number'))
-        .order_by('hero_slot')[:3]
-    )
+    try:
+        hero_novels = list(
+            Novel.objects.filter(hero_slot__isnull=False)
+            .annotate(latest_chapter=Max('chapters__chapter_number'))
+            .order_by('hero_slot')[:3]
+        )
+    except Exception:
+        hero_novels = []
     return render(request, 'myapp/index.html', {'hero_novels': hero_novels})
 
 def custom_admin(request):
