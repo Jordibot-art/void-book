@@ -135,6 +135,20 @@ STATICFILES_DIRS = [os.path.join(BASE_DIR, 'myapp/static')]
 STATIC_ROOT = BASE_DIR / 'staticfiles_build' / 'static'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFileStorage'
 
+# Supabase Storage Configuration
+SUPABASE_URL = os.environ.get('SUPABASE_URL', 'https://zenknnjfexumefmsabgu.supabase.co')
+SUPABASE_SERVICE_ROLE_KEY = os.environ.get('SUPABASE_SERVICE_ROLE_KEY', '')
+SUPABASE_STORAGE_BUCKET = os.environ.get('SUPABASE_STORAGE_BUCKET', 'covers')
+
+STORAGES = {
+    "default": {
+        "BACKEND": "myapp.storage.SupabaseStorage" if SUPABASE_SERVICE_ROLE_KEY else "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFileStorage",
+    },
+}
+
 LOGIN_REDIRECT_URL = 'home'
 LOGOUT_REDIRECT_URL = 'home'
 MEDIA_URL = '/media/'
