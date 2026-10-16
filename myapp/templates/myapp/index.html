@@ -6,7 +6,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VOID BOOK</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300;1,9..40,400;1,9..40,500;1,9..40,600&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'myapp/style.css' %}?v=4">
+<link rel="icon" type="image/jpeg" href="{% static 'myapp/images/voidbook-icon.jpg' %}">
+<link rel="stylesheet" href="{% static 'myapp/style.css' %}?v=5">
 </head>
 <body>
 
@@ -108,7 +109,7 @@
 </div>
 
 <nav>
-  <div class="logo" onclick="window.scrollTo({top:0,behavior:'smooth'})">VOID<span>BOOK</span></div>
+  <div class="logo" onclick="window.scrollTo({top:0,behavior:'smooth'})"><img src="{% static 'myapp/images/voidbook-icon.jpg' %}" alt="VOIDBOOK Icon" class="logo-icon">VOID<span>BOOK</span></div>
   <ul class="nav-links">
     <li><a class="active" onclick="setNav(this)" href="#">Home</a></li>
     <li><a onclick="setNav(this)" href="#featured">Featured</a></li>
