@@ -249,16 +249,51 @@ let readerManga = null;
 let currentChapterNumber = null;
 let availableChapters = [];
 
-function openReaderById(id) { 
-  openReader(mangas.find(m=>m.id===id)||mangas[0]); 
+async function openReaderById(id) { 
+  let m = mangas.find(x => x.id === id);
+
+  // If chapters are missing or mangas is still loading, fetch full novel data
+  if (!m || !m.chapters || Object.keys(m.chapters).length === 0) {
+    try {
+      const res = await fetch('/api/novels/');
+      if (res.ok) {
+        const dbData = await res.json();
+        if (Array.isArray(dbData)) {
+          dbData.forEach(d => {
+            const existing = mangas.find(x => x.id === d.id);
+            if (existing) {
+              existing.chapters = d.chapters;
+              if (d.coverUrl) existing.coverUrl = d.coverUrl;
+            } else {
+              mangas.push(d);
+            }
+          });
+          m = mangas.find(x => x.id === id) || dbData.find(x => x.id === id) || dbData[0];
+        }
+      }
+    } catch (err) {
+      console.warn("Could not fetch novel chapters on demand:", err);
+    }
+  }
+
+  if (!m && mangas.length) m = mangas[0];
+
+  if (m) {
+    openReader(m);
+  } else {
+    toast('Novel content could not be loaded. Please refresh.', 'error');
+  }
 }
 
 function openReader(m) {
+  if (!m) return;
   readerManga = m;
-  availableChapters = m.chapters ? Object.keys(m.chapters).map(Number).sort((a,b) => a - b) : [];
+  availableChapters = (m.chapters && typeof m.chapters === 'object')
+    ? Object.keys(m.chapters).map(Number).filter(n => !isNaN(n)).sort((a,b) => a - b)
+    : [];
   
   // Resume from saved progress if it exists!
-  if (progress[m.id]) {
+  if (progress[m.id] && availableChapters.includes(progress[m.id].chapter)) {
       currentChapterNumber = progress[m.id].chapter;
   } else if (availableChapters.length > 0) {
       currentChapterNumber = availableChapters[0];
@@ -266,7 +301,7 @@ function openReader(m) {
       currentChapterNumber = m.ch || 1; 
   }
 
-  document.getElementById('r-title').textContent    = m.title;
+  document.getElementById('r-title').textContent = m.title;
 
   updateChapterDropdown();
   renderChapter();
@@ -741,34 +776,22 @@ async function initializeSystem() {
     if (typeof rankings === 'undefined') window.rankings = [];
     if (typeof updates === 'undefined') window.updates = [];
 
-    // 1. Instantly restore authenticated user from SSR session if present
-    if (window.INITIAL_USER) {
-        currentUser = {
-            username: window.INITIAL_USER.username,
-            is_staff: Boolean(window.INITIAL_USER.is_staff)
-        };
-        if (window.INITIAL_USER.library) {
-            bookmarks = window.INITIAL_USER.library.bookmarks || [];
-            readHistory = window.INITIAL_USER.library.readHistory || [];
-            progress = window.INITIAL_USER.library.progress || {};
-            savedWords = window.INITIAL_USER.library.saved_words || {};
-        }
-    }
-
-    // 2. ALWAYS RENDER AUTH BUTTONS & BADGES IMMEDIATELY WITHOUT BLOCKING
+    // 1. ALWAYS start clean: render auth area (Sign In button) and badges
     renderAuthArea();
     updateBadge();
     updateQuickResume();
 
-    // 3. Fetch popular novels immediately so the grid renders in under 200ms
+    // 2. Fetch popular novels immediately so the grid renders in under 200ms
     const fetchPopular = fetch('/api/popular/')
         .then(res => res.ok ? res.json() : [])
         .then(data => {
             if (Array.isArray(data) && data.length) {
                 renderGrid(data);
-                if (!mangas.length) {
-                    mangas = data;
-                }
+                data.forEach(d => {
+                    if (!mangas.find(m => m.id === d.id)) {
+                        mangas.push(d);
+                    }
+                });
             }
         })
         .catch(err => console.warn("Could not fetch popular novels.", err));
@@ -801,18 +824,18 @@ async function initializeSystem() {
         })
         .catch(err => console.warn("Could not fetch new releases.", err));
 
-    // 4. Background fetch for full reader chapters (non-blocking)
+    // 3. Background fetch for full reader chapters (non-blocking)
     const fetchNovels = fetch('/api/novels/')
         .then(res => res.ok ? res.json() : [])
         .then(dbData => {
             if (Array.isArray(dbData) && dbData.length) {
-                const existingIds = new Set(mangas.map(m => m.id));
-                const newNovels = dbData.filter(m => !existingIds.has(m.id));
-                mangas = [...mangas, ...newNovels];
                 dbData.forEach(d => {
                     const match = mangas.find(m => m.id === d.id);
-                    if (match && d.chapters) {
+                    if (match) {
                         match.chapters = d.chapters;
+                        if (d.coverUrl) match.coverUrl = d.coverUrl;
+                    } else {
+                        mangas.push(d);
                     }
                 });
                 const grid = document.getElementById('manga-grid');

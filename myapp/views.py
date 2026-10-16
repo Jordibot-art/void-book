@@ -18,23 +18,7 @@ def home(request):
         .annotate(latest_chapter=Max('chapters__chapter_number'))
         .order_by('hero_slot')[:3]
     )
-    user_data = None
-    if request.user.is_authenticated:
-        library, _ = UserLibrary.objects.get_or_create(user=request.user)
-        user_data = {
-            'username': request.user.username,
-            'is_staff': request.user.is_staff,
-            'library': {
-                'bookmarks': library.bookmarks or [],
-                'readHistory': library.read_history or [],
-                'progress': library.progress or {},
-                'saved_words': library.saved_words or {},
-            }
-        }
-    return render(request, 'myapp/index.html', {
-        'hero_novels': hero_novels,
-        'initial_user_json': json.dumps(user_data) if user_data else 'null',
-    })
+    return render(request, 'myapp/index.html', {'hero_novels': hero_novels})
 
 def custom_admin(request):
     if not request.user.is_authenticated or not request.user.is_staff:
