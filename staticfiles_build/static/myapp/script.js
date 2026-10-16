@@ -604,11 +604,15 @@ document.addEventListener('click', e=>{
 function cardHTML(m) {
   const isBm = bookmarks.some(b=>b.id===m.id);
   const p    = progress[m.id];
+  const kanjiFallback = `<div style="width:100%;height:100%;background:${m.color};display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue';font-size:3.5rem;opacity:.8;color:#fff;">${m.kanji}</div>`;
+  const coverHtml = m.coverUrl
+    ? `<img src="${m.coverUrl}" style="width:100%;height:100%;object-fit:cover;object-position:${m.position || 'center'};" alt="${m.title}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"><div style="display:none;width:100%;height:100%;background:${m.color};align-items:center;justify-content:center;font-family:'Bebas Neue';font-size:3.5rem;opacity:.8;color:#fff;">${m.kanji}</div>`
+    : kanjiFallback;
   return `
     <div class="manga-card">
       <div class="manga-cover" onclick="openReaderById(${m.id})">
         ${m.badge?`<div class="manga-badge ${m.badge}">${m.badge}</div>`:''}
-        ${m.coverUrl ? `<img src="${m.coverUrl}" style="width:100%;height:100%;object-fit:cover; object-position: ${m.position || 'center'};" alt="${m.title}">` : `<div style="width:100%;height:100%;background:${m.color};display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue';font-size:3.5rem;opacity:.4;color:#fff;">${m.kanji}</div>`}
+        ${coverHtml}
         <div class="manga-overlay">
           <button class="read-btn" onclick="openReaderById(${m.id})">▶ Read Now</button>
           <button class="bm-btn ${isBm?'bookmarked':''}" onclick="toggleBookmark(${m.id},event)">${isBm?'★ Saved':'☆ Save'}</button>
@@ -641,7 +645,7 @@ function renderFeatured(featured) {
   container.innerHTML = featured.map(m => {
     const genreTag = `<span class="tag tag-${m.genre.toLowerCase()}">${m.genre}</span>`;
     const coverHtml = m.coverUrl 
-      ? `<img src="${m.coverUrl}" style="width:100%;height:100%;object-fit:cover;object-position:${m.position || 'center'};-webkit-mask-image:linear-gradient(to right,transparent,black 40%);" alt="${m.title}">`
+      ? `<img src="${m.coverUrl}" style="width:100%;height:100%;object-fit:cover;object-position:${m.position || 'center'};-webkit-mask-image:linear-gradient(to right,transparent,black 40%);" alt="${m.title}" onerror="this.style.display='none';">`
       : '';
     
     return `
@@ -666,7 +670,9 @@ function renderRankings(rankings) {
   }
   
   container.innerHTML = rankings.map((r, i) => {
-    const coverVisual = r.coverUrl ? `<img src="${r.coverUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:4px;" alt="${r.title}">` : (i + 1);
+    const coverVisual = r.coverUrl 
+      ? `<img src="${r.coverUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:4px;" alt="${r.title}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"><span style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-family:'Bebas Neue';font-size:1.2rem;color:#fff;">${r.kanji || (i + 1)}</span>` 
+      : (i + 1);
     const coverStyle = r.coverUrl ? 'background:transparent;' : `background:${r.color};`;
     return `
     <div class="rank-item" onclick="openReaderById(${r.id})">
@@ -691,7 +697,9 @@ function renderUpdates(updates) {
   }
   
   container.innerHTML = updates.map(u => {
-    const coverVisual = u.coverUrl ? `<img src="${u.coverUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:4px;" alt="${u.title}">` : u.kanji;
+    const coverVisual = u.coverUrl 
+      ? `<img src="${u.coverUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:4px;" alt="${u.title}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"><span style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-family:'Bebas Neue';font-size:1.2rem;color:#fff;">${u.kanji}</span>` 
+      : u.kanji;
     const coverStyle = u.coverUrl ? 'background:transparent;opacity:1;padding:0;' : `background:${u.color};opacity:0.85;`;
     return `
     <div class="update-item" onclick="openReaderById(${u.id})">
@@ -726,96 +734,96 @@ function filterGenre(el) {
 }
 
 // ══════════════════════════════════════════
-// INIT & FETCH DATA
+// INIT & FETCH DATA (FAST & PARALLEL)
 // ══════════════════════════════════════════
 async function initializeSystem() {
-    // SAFETY CHECK 1: If data.js fails to load due to a typo, create empty backups so the site doesn't crash!
     if (typeof mangas === 'undefined') window.mangas = [];
     if (typeof rankings === 'undefined') window.rankings = [];
     if (typeof updates === 'undefined') window.updates = [];
 
-    try {
-        // 1. Ask Django for the books (for reader content)
-        const novelsResponse = await fetch('/api/novels/');
-        if (novelsResponse.ok) {
-            const dbData = await novelsResponse.json();
-            if (Array.isArray(dbData)) {
-                mangas = [...mangas, ...dbData];
-            }
+    // 1. Instantly restore authenticated user from SSR session if present
+    if (window.INITIAL_USER) {
+        currentUser = {
+            username: window.INITIAL_USER.username,
+            is_staff: Boolean(window.INITIAL_USER.is_staff)
+        };
+        if (window.INITIAL_USER.library) {
+            bookmarks = window.INITIAL_USER.library.bookmarks || [];
+            readHistory = window.INITIAL_USER.library.readHistory || [];
+            progress = window.INITIAL_USER.library.progress || {};
+            savedWords = window.INITIAL_USER.library.saved_words || {};
         }
-    } catch (error) {
-        console.warn("Could not reach database for novels. Falling back to data.js books only.", error);
     }
 
-    // 2. Fetch Featured Novels (admin selected)
-    try {
-        const featuredResponse = await fetch('/api/featured/');
-        if (featuredResponse.ok) {
-            const featuredData = await featuredResponse.json();
-            if (Array.isArray(featuredData)) {
-                renderFeatured(featuredData);
-            }
-        }
-    } catch (error) {
-        console.warn("Could not fetch featured novels.", error);
-    }
-
-    // 3. Fetch Popular Novels (rating 7.0-10.0)
-    try {
-        const popularResponse = await fetch('/api/popular/');
-        if (popularResponse.ok) {
-            const popularData = await popularResponse.json();
-            if (Array.isArray(popularData)) {
-                renderGrid(popularData);
-            }
-        }
-    } catch (error) {
-        console.warn("Could not fetch popular novels.", error);
-    }
-
-    // 4. Fetch Top Ranked Novels (rating 9.0-10.0)
-    try {
-        const rankingsResponse = await fetch('/api/rankings/');
-        if (rankingsResponse.ok) {
-            const rankingsData = await rankingsResponse.json();
-            if (Array.isArray(rankingsData)) {
-                renderRankings(rankingsData);
-            }
-        }
-    } catch (error) {
-        console.warn("Could not fetch rankings.", error);
-    }
-
-    // 5. Fetch Latest Updates (recent chapter updates)
-    try {
-        const updatesResponse = await fetch('/api/updates/');
-        if (updatesResponse.ok) {
-            const updatesData = await updatesResponse.json();
-            if (Array.isArray(updatesData)) {
-                renderUpdates(updatesData);
-            }
-        }
-    } catch (error) {
-        console.warn("Could not fetch updates.", error);
-    }
-
-    // 6. Fetch New Releases (novels created in last 30 days)
-    try {
-        const newReleasesResponse = await fetch('/api/new-releases/');
-        if (newReleasesResponse.ok) {
-            const newReleasesData = await newReleasesResponse.json();
-            if (Array.isArray(newReleasesData)) {
-                renderNewReleases(newReleasesData);
-            }
-        }
-    } catch (error) {
-        console.warn("Could not fetch new releases.", error);
-    }
-
-    // 7. ALWAYS RUN THESE - Auth and UI elements
+    // 2. ALWAYS RENDER AUTH BUTTONS & BADGES IMMEDIATELY WITHOUT BLOCKING
     renderAuthArea();
     updateBadge();
     updateQuickResume();
+
+    // 3. Fetch popular novels immediately so the grid renders in under 200ms
+    const fetchPopular = fetch('/api/popular/')
+        .then(res => res.ok ? res.json() : [])
+        .then(data => {
+            if (Array.isArray(data) && data.length) {
+                renderGrid(data);
+                if (!mangas.length) {
+                    mangas = data;
+                }
+            }
+        })
+        .catch(err => console.warn("Could not fetch popular novels.", err));
+
+    const fetchFeatured = fetch('/api/featured/')
+        .then(res => res.ok ? res.json() : [])
+        .then(data => {
+            if (Array.isArray(data)) renderFeatured(data);
+        })
+        .catch(err => console.warn("Could not fetch featured novels.", err));
+
+    const fetchRankings = fetch('/api/rankings/')
+        .then(res => res.ok ? res.json() : [])
+        .then(data => {
+            if (Array.isArray(data)) renderRankings(data);
+        })
+        .catch(err => console.warn("Could not fetch rankings.", err));
+
+    const fetchUpdates = fetch('/api/updates/')
+        .then(res => res.ok ? res.json() : [])
+        .then(data => {
+            if (Array.isArray(data)) renderUpdates(data);
+        })
+        .catch(err => console.warn("Could not fetch updates.", err));
+
+    const fetchNewReleases = fetch('/api/new-releases/')
+        .then(res => res.ok ? res.json() : [])
+        .then(data => {
+            if (Array.isArray(data)) renderNewReleases(data);
+        })
+        .catch(err => console.warn("Could not fetch new releases.", err));
+
+    // 4. Background fetch for full reader chapters (non-blocking)
+    const fetchNovels = fetch('/api/novels/')
+        .then(res => res.ok ? res.json() : [])
+        .then(dbData => {
+            if (Array.isArray(dbData) && dbData.length) {
+                const existingIds = new Set(mangas.map(m => m.id));
+                const newNovels = dbData.filter(m => !existingIds.has(m.id));
+                mangas = [...mangas, ...newNovels];
+                dbData.forEach(d => {
+                    const match = mangas.find(m => m.id === d.id);
+                    if (match && d.chapters) {
+                        match.chapters = d.chapters;
+                    }
+                });
+                const grid = document.getElementById('manga-grid');
+                if (grid && !grid.children.length) {
+                    renderGrid(mangas);
+                }
+            }
+        })
+        .catch(err => console.warn("Could not reach database for novels.", err));
+
+    await Promise.allSettled([fetchPopular, fetchFeatured, fetchRankings, fetchUpdates, fetchNewReleases, fetchNovels]);
 }
 
 

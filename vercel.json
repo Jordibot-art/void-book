@@ -23,6 +23,10 @@
             "dest": "/staticfiles_build/static/$1"
         },
         {
+            "src": "/media/(.*)",
+            "dest": "/staticfiles_build/media/$1"
+        },
+        {
             "src": "/(.*)",
             "dest": "myproject/wsgi.py"
         }

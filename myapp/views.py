@@ -18,7 +18,23 @@ def home(request):
         .annotate(latest_chapter=Max('chapters__chapter_number'))
         .order_by('hero_slot')[:3]
     )
-    return render(request, 'myapp/index.html', {'hero_novels': hero_novels})
+    user_data = None
+    if request.user.is_authenticated:
+        library, _ = UserLibrary.objects.get_or_create(user=request.user)
+        user_data = {
+            'username': request.user.username,
+            'is_staff': request.user.is_staff,
+            'library': {
+                'bookmarks': library.bookmarks or [],
+                'readHistory': library.read_history or [],
+                'progress': library.progress or {},
+                'saved_words': library.saved_words or {},
+            }
+        }
+    return render(request, 'myapp/index.html', {
+        'hero_novels': hero_novels,
+        'initial_user_json': json.dumps(user_data) if user_data else 'null',
+    })
 
 def custom_admin(request):
     if not request.user.is_authenticated or not request.user.is_staff:
@@ -109,7 +125,7 @@ def api_save_progress(request):
 
 # 6. GET NOVELS API (✨ BULLETPROOF FIX ✨)
 def api_get_novels(request):
-    novels = Novel.objects.all()
+    novels = Novel.objects.prefetch_related('chapters').all()
     mangas_data = []
 
     for novel in novels:
@@ -417,8 +433,7 @@ def _novel_to_dict(novel, latest_chapter=0, latest_chapter_time=None):
 
 def api_get_featured(request):
     """Get featured novels (admin selected via is_featured checkbox)"""
-    # Get novels marked as featured, limit to 2
-    featured_novels = Novel.objects.filter(is_featured=True)[:2]
+    featured_novels = Novel.objects.prefetch_related('chapters').filter(is_featured=True)[:2]
     featured_data = []
     
     for novel in featured_novels:
@@ -435,8 +450,7 @@ def api_get_featured(request):
 
 def api_get_popular(request):
     """Get popular novels (all novels, ordered by rating)"""
-    # Get ALL novels, ordered by rating descending
-    popular_novels = Novel.objects.all().order_by('-rating')
+    popular_novels = Novel.objects.prefetch_related('chapters').all().order_by('-rating')
     popular_data = []
     
     for novel in popular_novels:
@@ -453,8 +467,7 @@ def api_get_popular(request):
 
 def api_get_rankings(request):
     """Get top ranked novels (only novels with rating 9-10, limited to 10)"""
-    # Get novels with rating >= 9.0, ordered by rating descending, limit to 10
-    ranked_novels = Novel.objects.filter(rating__gte=9.0).order_by('-rating')[:10]
+    ranked_novels = Novel.objects.prefetch_related('chapters').filter(rating__gte=9.0).order_by('-rating')[:10]
     rankings_data = []
     
     for novel in ranked_novels:
@@ -471,60 +484,41 @@ def api_get_rankings(request):
 
 def api_get_updates(request):
     """Get latest updates (all novels with chapters, ordered by most recent)"""
-    # Get ALL novels that have chapters
-    novel_ids_with_updates = Chapter.objects.values_list('novel_id', flat=True).distinct()
-    
-    # Get the latest chapter info for each novel
+    # Fetch all novels with their chapters in 2 queries
+    novels_with_chapters = Novel.objects.prefetch_related('chapters').filter(chapters__isnull=False).distinct()
     updates_data = []
-    processed_novel_ids = set()  # Track processed novels to avoid duplicates
     
-    for novel_id in novel_ids_with_updates:
-        # Skip if already processed (extra safety against duplicates)
-        if novel_id in processed_novel_ids:
+    for novel in novels_with_chapters:
+        chapters = novel.chapters.all()
+        if not chapters:
             continue
+        latest_chapter = 0
+        latest_time = None
+        for ch in chapters:
+            if ch.chapter_number > latest_chapter:
+                latest_chapter = ch.chapter_number
+                latest_time = ch.created_at
         
-        try:
-            novel = Novel.objects.get(id=novel_id)
-            chapters = novel.chapters.all()
-            latest_chapter = 0
-            latest_time = None
-            
-            for ch in chapters:
-                if ch.chapter_number > latest_chapter:
-                    latest_chapter = ch.chapter_number
-                    latest_time = ch.created_at
-            
-            novel_dict = _novel_to_dict(novel, latest_chapter)
-            
-            # Add time info
-            if latest_time:
-                time_diff = timezone.now() - latest_time
-                if time_diff.days > 0:
-                    novel_dict['time'] = f"{time_diff.days}d ago"
-                elif time_diff.seconds // 3600 > 0:
-                    novel_dict['time'] = f"{time_diff.seconds // 3600}h ago"
-                else:
-                    novel_dict['time'] = f"{time_diff.seconds // 60}m ago"
+        novel_dict = _novel_to_dict(novel, latest_chapter)
+        if latest_time:
+            time_diff = timezone.now() - latest_time
+            if time_diff.days > 0:
+                novel_dict['time'] = f"{time_diff.days}d ago"
+            elif time_diff.seconds // 3600 > 0:
+                novel_dict['time'] = f"{time_diff.seconds // 3600}h ago"
             else:
-                novel_dict['time'] = 'Recently'
-            
-            updates_data.append(novel_dict)
-            processed_novel_ids.add(novel_id)  # Mark as processed
-            
-        except Novel.DoesNotExist:
-            # Skip novels that might have been deleted
-            continue
+                novel_dict['time'] = f"{time_diff.seconds // 60}m ago"
+        else:
+            novel_dict['time'] = 'Recently'
+        
+        updates_data.append(novel_dict)
     
-    # Sort by time (most recent first) - using the time field
-    updates_data.sort(key=lambda x: x.get('time', 'Recently'))
-    
-    return JsonResponse(updates_data[:10], safe=False)  # Limit to 10
+    return JsonResponse(updates_data[:10], safe=False)
 
 
 def api_get_new_releases(request):
     """Get new releases (all novels, ordered by creation date)"""
-    # Get ALL novels, ordered by creation date descending
-    new_novels = Novel.objects.all().order_by('-created_at')
+    new_novels = Novel.objects.prefetch_related('chapters').all().order_by('-created_at')
     new_releases_data = []
     
     for novel in new_novels:
